@@ -101,8 +101,8 @@ mastodon = "" # Your verification code
 
 # google map
 [google_map]
-enable = true
-embed_url = "https://www.google.com/maps/embed/v1/place?q=Washington+D.C.,+DC,+USA&key="
+enable = false
+embed_url = "" # replace this code with yours (APIキーはコミットしないこと。本実装時はGitHub Secrets等で管理)
 
 # cookies
 [cookies]
