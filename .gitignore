@@ -1,0 +1,31 @@
+# Hugoビルド成果物（CI/CDで都度生成、コミット不要）
+public/
+resources/
+hugo_stats.json
+.hugo_build.lock
+
+# Node.js（PostCSS/PurgeCSS用ビルドツール、package.jsonから復元可能）
+node_modules/
+
+# 環境変数・シークレット（ローカル開発用。本番はGitHub Secretsで管理）
+.env
+.env.*
+!.env.example
+
+# OS/エディタ
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ログ
+*.log
+
+# Claude Code（個人・セッションローカルな権限設定。共有設定は.claude/settings.jsonに置く）
+.claude/settings.local.json
+
+# 未決事項：トラック間ですり合わせ待ちのため一旦除外（決定後に解除・再検討）
+# - content/: 生成先パスがKross標準(content/english/portfolio,blog)と設計書(content/works,news)で不一致
+# - themes/kross/: Hugo Modules(go.mod)経由取得とローカル実体コミットのどちらにするか未確定
+content/
+themes/kross/

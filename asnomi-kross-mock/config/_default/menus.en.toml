@@ -1,0 +1,22 @@
+############# ナビゲーション（日本語ラベルに変更） ##############
+
+# main menu
+[[main]]
+URL = "about/"
+name = "プロフィール"
+weight = 1
+
+[[main]]
+URL = "blog/"
+name = "お知らせ"
+weight = 2
+
+[[main]]
+URL = "portfolio/"
+name = "作品"
+weight = 3
+
+[[main]]
+URL = "contact/"
+name = "お問い合わせ"
+weight = 4
