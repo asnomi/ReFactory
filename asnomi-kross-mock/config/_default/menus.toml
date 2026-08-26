@@ -7,12 +7,12 @@ name = "プロフィール"
 weight = 1
 
 [[main]]
-URL = "blog/"
+URL = "news/"
 name = "お知らせ"
 weight = 2
 
 [[main]]
-URL = "portfolio/"
+URL = "works/"
 name = "作品"
 weight = 3
 
