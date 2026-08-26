@@ -3,6 +3,10 @@ public/
 resources/
 hugo_stats.json
 .hugo_build.lock
+# jsconfig.jsonはHugoが`hugo mod`解決時にローカル環境の絶対パス(hugo_cacheの位置)を
+# 埋め込んで自動生成するエディタ支援用ファイル。マシン・配置ディレクトリ依存で
+# 環境間で無意味な差分が発生するため追跡対象外とする。
+**/assets/jsconfig.json
 
 # Node.js（PostCSS/PurgeCSS用ビルドツール、package.jsonから復元可能）
 node_modules/
@@ -27,5 +31,8 @@ Thumbs.db
 # 未決事項：トラック間ですり合わせ待ちのため一旦除外（決定後に解除・再検討）
 # - content/: 生成先パスがKross標準(content/english/portfolio,blog)と設計書(content/works,news)で不一致
 # - themes/kross/: Hugo Modules(go.mod)経由取得とローカル実体コミットのどちらにするか未確定
+#   （2026-08-26修正: 実際の配置先は asnomi-kross-mock/themes/kross/ のようにリポジトリルート
+#    直下ではないため、途中にスラッシュを含む旧パターンはネストした階層にマッチしなかった。
+#    **/ プレフィックスを付けて任意の深さにマッチするよう修正）
 content/
-themes/kross/
+**/themes/kross/
