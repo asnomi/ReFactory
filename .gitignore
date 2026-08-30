@@ -28,6 +28,16 @@ Thumbs.db
 # Claude Code（個人・セッションローカルな権限設定。共有設定は.claude/settings.jsonに置く）
 .claude/settings.local.json
 
+# Terraform（tfstateはS3リモートバックエンドで管理、ローカルには残さない。.terraform.lock.hclは再現性のためコミット対象）
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
 # 未決事項：トラック間ですり合わせ待ちのため一旦除外（決定後に解除・再検討）
 # - content/: 生成先パスがKross標準(content/english/portfolio,blog)と設計書(content/works,news)で不一致
 # - themes/kross/: Hugo Modules(go.mod)経由取得とローカル実体コミットのどちらにするか未確定
