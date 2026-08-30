@@ -4,6 +4,8 @@
 **作成:** 2026-08-25
 **モック配置場所:** `asnomi-kross-mock/`（既存の`asnomi-newgallery/`はQuintテーマの旧検証物のため触れていない）
 
+> **注（2026-08-26）:** 本メモは初回モック検証時点（`content/english/portfolio/`・`content/english/blog/`構成）の記録であり、その後トラックBとのパス整合により`content/works/`・`content/news/`へ変更されている。最新の正式仕様は[設計書_トラックA_フロントエンド.md](./設計書_トラックA_フロントエンド.md)（特に7.5節）を参照のこと。本メモ内の`/portfolio/`・`/blog/`表記は歴史的記録として残す。
+
 ---
 
 ## T2-0. モック作成 / T2-1. Hugo環境構築

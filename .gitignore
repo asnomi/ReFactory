@@ -39,7 +39,10 @@ crash.log
 crash.*.log
 
 # 未決事項：トラック間ですり合わせ待ちのため一旦除外（決定後に解除・再検討）
-# - content/: 生成先パスがKross標準(content/english/portfolio,blog)と設計書(content/works,news)で不一致
+# - content/: （2026-08-26追記）生成先パスの不一致(content/english/portfolio,blog vs content/works,news)は
+#   トラックA側でcontent/works・content/newsに統一し解消済み。ただし本番運用ではcontent/はNotion同期スクリプトが
+#   ビルド直前に都度生成する一時データとして扱う設計(NF-201)のため、除外自体は継続する。
+#   モック用ダミーコンテンツを他トラックのレビュー用に共有したい場合は要相談（現状は除外のまま）。
 # - themes/kross/: Hugo Modules(go.mod)経由取得とローカル実体コミットのどちらにするか未確定
 #   （2026-08-26修正: 実際の配置先は asnomi-kross-mock/themes/kross/ のようにリポジトリルート
 #    直下ではないため、途中にスラッシュを含む旧パターンはネストした階層にマッチしなかった。

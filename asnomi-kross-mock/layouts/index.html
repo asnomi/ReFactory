@@ -172,7 +172,7 @@
     </div>
     <div class="row shuffle-wrapper">
       {{ $item:= .Params.portfolio.item_show }}
-      {{ range first $item (where .Site.RegularPages "Section" "portfolio") }}
+      {{ range first $item (where .Site.RegularPages "Section" "works") }}
       <div class="col-lg-4 col-6 mb-4 shuffle-item">
         <div class="position-relative rounded hover-wrapper">
           {{ partial "image.html" (dict "Src" .Params.image "Alt" "portfolio-image" "Class" `rounded w-100 d-block`)
@@ -252,7 +252,7 @@
       <div class="col-12 text-center">
         <h2 class="section-title">{{.Params.blog.title | markdownify }}</h2>
       </div>
-      {{ range first 3 (where .Site.RegularPages "Section" "blog")}}
+      {{ range first 3 (where .Site.RegularPages "Section" "news")}}
       {{ .Render "post" }}
       {{ end }}
     </div>

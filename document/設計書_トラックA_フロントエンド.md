@@ -6,9 +6,9 @@
 
 **対応要件:** F-301, F-302, F-303, F-304
 
-**Document Version:** 1.0（モック検証結果＋トラックCとの調整事項を反映した正式版）
+**Document Version:** 1.1（トラックB(Notionデータ連携)とのコンテンツ出力パス整合を反映）
 
-**Date:** 2026-08-25
+**Date:** 2026-08-25（初版）／2026-08-26改訂（トラックBの[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md)に合わせ、コンテンツ出力パスを`content/works/`・`content/news/`に統一。詳細は7.5節）
 
 ---
 
@@ -43,8 +43,8 @@
 
 - 配置場所: `asnomi-kross-mock/`（既存の`asnomi-newgallery/`はQuintテーマの旧検証物のため区別・保持）
 - テーマ本体: [themefisher/kross-hugo](https://github.com/themefisher/kross-hugo) を `asnomi-kross-mock/themes/kross` にclone
-- コンテンツ構成: `exampleSite/`の構造（`content/english/`配下に`portfolio/`・`blog/`・`about.md`等）をそのままサイトルートへ展開し、ダミーコンテンツ（作品6点・お知らせ3件）を日本語で投入
-  - 現行サイトが単一言語（日本語）運用のため、`content/english/`という言語ディレクトリ名の意味は形式的なものであり、実際の表示言語には影響しない（Hugoの多言語切替機能自体は使用しない）
+- コンテンツ構成: 当初は`exampleSite/`の構造（`content/english/`配下に`portfolio/`・`blog/`・`about.md`等）をそのままサイトルートへ展開していたが、**2026-08-26にトラックB([設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md))とのパス整合を行い、`content/works/`・`content/news/`・`content/about.md`・`content/contact.md`（言語ディレクトリ層なし）へ変更済み**（詳細は7.5節）。ダミーコンテンツ（作品6点・お知らせ3件）は日本語のまま維持。
+  - 現行サイトは単一言語（日本語）運用のため、Kross標準の多言語ディレクトリ構成（`content/english/`等）はそもそも不要と判断し、多言語設定自体を撤去した（7.5節参照）。
 
 ### 2.2 環境構築上の重要事項
 
@@ -55,7 +55,7 @@
   cd asnomi-kross-mock
   hugo server --environment development
   ```
-  `http://localhost:1313/`（環境により1414等）でホーム、`/portfolio/`でギャラリー、`/blog/`でニュース一覧を確認できる。
+  `http://localhost:1313/`（環境により1414等）でホーム、`/works/`でギャラリー、`/news/`でニュース一覧を確認できる（2026-08-26のパス変更後のURL。旧`/portfolio/`・`/blog/`は廃止）。
 
 ---
 
@@ -74,7 +74,7 @@
 
 ポートフォリオ一覧ページのフィルターボタン「All」、詳細リンク「view project」、作品詳細の「Date/Client/Categories/Project Link」、ニュースカードの「Read More/Details」、お問い合わせフォーム、フッターの連絡先ラベルはテーマ内で英語ハードコードされていたが、モックで日本語に置き換え済み。
 
-- 本サイトは単一言語（日本語）運用のため、Hugoの多言語i18n機構（`i18n/ja.yaml`等）は導入せず、**プロジェクト側`layouts/`へのテンプレート直接オーバーライド**で対応する方針とした（該当ファイル: `layouts/index.html`、`layouts/portfolio/list.html`、`layouts/portfolio/single.html`、`layouts/_default/post.html`、`layouts/_default/contact.html`、`layouts/partials/essentials/footer.html`）。
+- 本サイトは単一言語（日本語）運用のため、Hugoの多言語i18n機構（`i18n/ja.yaml`等）は導入せず、**プロジェクト側`layouts/`へのテンプレート直接オーバーライド**で対応する方針とした（該当ファイル: `layouts/index.html`、`layouts/works/list.html`、`layouts/works/single.html`、`layouts/_default/post.html`、`layouts/_default/contact.html`、`layouts/partials/essentials/footer.html`。2026-08-26のパス変更に伴い`layouts/portfolio/`→`layouts/works/`にリネーム済み）。
 - 実装フェーズでは本番コンテンツ（プロフィール文・お問い合わせ先等）の反映と併せて、上記オーバーライド一式をそのまま本実装に引き継ぐ想定。
 
 **未対応・保留事項:**
@@ -101,10 +101,10 @@
 
 ## 5. T2-4. ギャラリー（作品一覧）設計
 
-- `/portfolio/`一覧ページ（`layouts/portfolio/list.html`）は、全作品の`categories`フロントマターの値を`.RegularPages`から動的収集し、重複除去した値でフィルターボタンを自動生成する実装。Shuffle.js（`plugins/shuffle/shuffle.min.js`）と`data-groups`属性のみで絞り込みが完結し、**独自のフィルターロジック実装は不要**であることをモックで実証（ダミーカテゴリ「イラスト」「グラフィック」「漫画」「らくがき」で正常にボタン生成・絞り込み表示を確認）。
+- `/works/`一覧ページ（`layouts/works/list.html`。2026-08-26に`layouts/portfolio/`からリネーム）は、全作品の`categories`フロントマターの値を`.RegularPages`から動的収集し、重複除去した値でフィルターボタンを自動生成する実装。Shuffle.js（`plugins/shuffle/shuffle.min.js`）と`data-groups`属性のみで絞り込みが完結し、**独自のフィルターロジック実装は不要**であることをモックで実証（ダミーカテゴリ「イラスト」「グラフィック」「漫画」「らくがき」で正常にボタン生成・絞り込み表示を確認）。
 - ホーム側の「作品ギャラリー」セクションは`item_show`件数のグリッド表示のみで、フィルターUIは無し（一覧ページのみの機能）。
 - **年別ソート/グルーピング機能（F-303）は、MVP範囲では実装せず、申し送り事項としてバックログ化することを決定**（2026-08-25、ユーザー判断）。現状は`.RegularPages`のデフォルト順（`date`降順）で表示されるため、「新しい順」の表示は初期スコープで満たされる。年ごとのグルーピング表示の要否・実装方法は、MVP稼働後に改めて検討する。
-- 気付き: `/portfolio/`ページ下部に`components/client-slider.html`という無条件表示のクライアントロゴスライダー区画が存在（ホーム側の`clients_logo_slider.enable=false`とは独立した別区画）。個人ポートフォリオサイトには不要なため、正式実装時に削除対象とする。
+- 気付き: `/works/`ページ下部に`components/client-slider.html`という無条件表示のクライアントロゴスライダー区画が存在（ホーム側の`clients_logo_slider.enable=false`とは独立した別区画）。個人ポートフォリオサイトには不要なため、正式実装時に削除対象とする。
 
 関連要件: F-303
 
@@ -114,7 +114,7 @@
 
 - ホームの「お知らせ・近況」セクションは`layouts/index.html`内で`{{ range first 3 (where .Site.RegularPages "Section" "blog")}}`と**件数(3)がテンプレート内にハードコード**されている（設定ファイルではなく、テンプレート編集で変更する方式）。
 - **表示件数 N=3（Kross標準のまま）で決定**（2026-08-25、ユーザー判断）。現行asnomi.comサイトも同様の件数のため据え置き、追加実装不要。
-- 一覧ページ（`/blog/`）はページネーション付きの通常のセクション一覧テンプレートで、追加実装不要。
+- 一覧ページ（`/news/`。2026-08-26に`/blog/`からURL変更）はページネーション付きの通常のセクション一覧テンプレートで、追加実装不要。
 
 関連要件: F-304
 
@@ -148,6 +148,26 @@ Kross標準ではCSSが外部リンクファイルではなく、各HTMLペー�
 
 → トラックCのワークフロー骨格（2.3節）は変更なし、確定版として扱ってよい。
 
+### 7.5 コンテンツ出力パスのトラックB整合（2026-08-26）
+
+トラックB（[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md) 3章）は出力先を`content/works/{slug}.md`・`content/news/{slug}.md`と設計していたが、トラックAのモックはKrossのexampleSite標準構成をそのまま踏襲していたため`content/english/portfolio/`・`content/english/blog/`となっており、命名・階層とも不一致だった。トラックB側の設計に合わせる方針とし、以下の変更を行った。
+
+**変更内容:**
+
+| 対象 | 変更前 | 変更後 |
+| --- | --- | --- |
+| 作品コンテンツ | `content/english/portfolio/` | `content/works/` |
+| ニュースコンテンツ | `content/english/blog/` | `content/news/` |
+| 固定ページ | `content/english/about.md`、`content/english/contact.md`、`content/english/_index.md` | `content/about.md`、`content/contact.md`、`content/_index.md`（言語ディレクトリ層を撤去） |
+| プロジェクト側レイアウト | `layouts/portfolio/list.html`、`layouts/portfolio/single.html` | `layouts/works/list.html`、`layouts/works/single.html`（フォルダリネームのみ、中身は無変更） |
+| `layouts/index.html` | `(where .Site.RegularPages "Section" "portfolio")`、`"blog"` | `"works"`、`"news"`（文字列2箇所のみ変更） |
+| メニュー設定 | `config/_default/menus.en.toml`（`portfolio/`・`blog/`リンク） | `config/_default/menus.toml`（`works/`・`news/`リンクにリネーム＋言語非依存のファイル名に変更） |
+| 多言語設定 | `config/_default/languages.toml`（`contentDir = "content/english"`） | 削除（単一言語運用のため多言語設定自体が不要と判断） |
+
+**改修コストの実績:** 事前見積もり通り「フォルダリネーム＋文字列2箇所＋設定ファイル調整」の範囲で完結。Shuffle.jsのカテゴリ絞り込みロジックや`_default/list.html`（ニュース一覧の汎用テンプレート）・`_default/post.html`（ニュースカード）はセクション名に依存しない実装のため無変更で動作した。
+
+**検証結果:** `hugo --environment development`でのビルド成功、`hugo server`で`/`・`/works/`・`/works/project-1/`・`/news/`が全て200応答、ホームの作品ギャラリー・お知らせセクション、`/works/`のカテゴリフィルター（すべて/イラスト/グラフィック/漫画/らくがき）とも表示内容を確認済み。
+
 ---
 
 ## 8. 未対応・今後の課題（バックログ）
@@ -156,4 +176,4 @@ Kross標準ではCSSが外部リンクファイルではなく、各HTMLペー�
 - **ダークモード対応**: 現行サイトにはあるが、Kross標準にはない。追加SCSS実装が必要
 - **自前フォント（`OpenSauceOne`）の`@font-face`読み込み**: パラメータ指定だけでは対応できないため、SCSS側の追加カスタマイズが必要
 - **画像保存先（`assets/` vs `static/`）の最終決定**: T1-4（Notionデータ連携、トラックB）側との連携待ち。KrossのImage Processing活用方法（本書でのHugo標準機能利用）に合わせて最終決定する
-- `/portfolio/`ページ下部の無条件表示クライアントロゴスライダー区画の削除
+- `/works/`ページ下部の無条件表示クライアントロゴスライダー区画の削除
