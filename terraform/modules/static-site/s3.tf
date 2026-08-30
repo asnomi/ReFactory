@@ -1,6 +1,6 @@
 # サイト配信用S3バケット。CloudFront（OAC）経由以外からのアクセスは一切許可しない。
 resource "aws_s3_bucket" "site" {
-  bucket = var.domain_name
+  bucket = var.bucket_name
 }
 
 resource "aws_s3_bucket_public_access_block" "site" {

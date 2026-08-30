@@ -47,6 +47,7 @@ module "dev_site" {
 
   environment       = "dev"
   domain_name       = var.domain_name
+  bucket_name       = var.bucket_name
   hosted_zone_id    = var.hosted_zone_id
   price_class       = "PriceClass_100"
   enable_versioning = true

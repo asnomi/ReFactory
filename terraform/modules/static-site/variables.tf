@@ -4,7 +4,12 @@ variable "environment" {
 }
 
 variable "domain_name" {
-  description = "このサイトの独自ドメイン名（例: dev.asnomi.com）。S3バケット名にもそのまま使用する"
+  description = "このサイトの独自ドメイン名（例: dev.asnomi.com）"
+  type        = string
+}
+
+variable "bucket_name" {
+  description = "サイト配信用S3バケット名。S3バケット名はAWS全体でグローバルに一意である必要があるため、domain_nameとは別にアカウントID等を含めた一意な値を指定する"
   type        = string
 }
 
