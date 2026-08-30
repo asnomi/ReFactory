@@ -6,9 +6,9 @@
 
 **対応要件:** F-204, NF-101, NF-202
 
-**Document Version:** 0.1（初版）
+**Document Version:** 0.2（apply実行・実機構築完了を反映）
 
-**Date:** 2026-08-30
+**Date:** 2026-08-30（初版）／2026-08-30改訂（terraform apply実行完了、実機構築結果を反映）
 
 ---
 
@@ -128,34 +128,49 @@ terraform/
 
 ---
 
-## 6. 適用手順（実行順序）
+## 6. 適用手順・実行結果
 
-Terraformコード自体はこのPRで完成させるが、実際の`terraform apply`実行は別途ユーザー承認のうえで行う。想定手順は以下の通り。
+**2026-08-30、ユーザー承認のうえ実行完了。** 以下、実施した手順と結果。
 
-1. **既存オーファンリソースの削除**（AWSコンソールまたはCLI。Terraform管理外の手動操作）
-   - CloudFrontディストリビューション`EHAFG1OU9KCD7`を無効化 → デプロイ完了待ち → 削除
-2. `terraform/bootstrap/` を `terraform init && terraform apply`（tfstate用バケット・DynamoDBテーブル作成、初回のみ）
-3. `terraform/global/github-oidc/` を `terraform init && terraform apply`（OIDCプロバイダ作成、初回のみ）
-4. `terraform/envs/dev/` を `terraform init && terraform apply`（S3・CloudFront・ACM・DNS・IAMロール作成）
-   - ACM証明書のDNS検証はRoute53レコードをTerraformが自動作成するため、`aws_acm_certificate_validation`完了まで数分〜十数分待つ場合がある
-5. 適用完了後、`terraform output` で以下をトラックC（GitHub Actionsワークフロー担当）へ払い出す
-6. 払い出した値を **GitHubの`dev` Environment（Environment Variables）** に登録する（6.1節参照）
+1. **既存オーファンリソースの削除** ✅ 完了
+   - CloudFrontディストリビューション`EHAFG1OU9KCD7`を無効化 → `Deployed`状態を確認 → 削除。削除後`GetDistribution`で`NoSuchDistribution`を確認済み。
+2. `terraform/bootstrap/` を apply ✅ 完了（tfstate用S3バケット・DynamoDBロックテーブル作成）
+3. `terraform/global/github-oidc/` を apply ✅ 完了（OIDCプロバイダ作成）
+   - **apply中に判明した不具合：** コード内の`thumbprint_list`が39文字（1文字不足）でTerraformのバリデーションエラーとなった。`openssl s_client`で`token.actions.githubusercontent.com`の実際のTLS証明書チェーンから中間CA証明書のSHA1フィンガープリントを取得し直し、正しい40文字の値に修正して解消（`terraform/global/github-oidc/main.tf`）。
+4. `terraform/envs/dev/` を apply
+   - **1回目：失敗。** S3バケット名を`domain_name`（`dev.asnomi.com`）とそのまま同一にしていたため、`BucketAlreadyExists`（S3バケット名はAWS全体でグローバルに一意な必要があり、他アカウントで既に使用済みだった）で失敗。ACM証明書・IAMロール・OACは作成成功。
+   - **対応：** `modules/static-site`に`bucket_name`変数を新設し、`domain_name`（DNS/CloudFrontエイリアス用）とS3バケット名を分離。`envs/dev`では`bucket_name = "asnomi-dev-site-566759952246"`を使用するよう変更。
+   - **2回目：成功。** 残りのS3バケット本体・CloudFrontディストリビューション・Route53レコード（A/AAAA）を作成し、apply完了。
+5. 実機動作確認 ✅ 完了
+   - DNS解決：`dev.asnomi.com` → CloudFrontのIPアドレス群に正しく解決
+   - HTTPS/TLS：ハンドシェイク成功（ACM証明書が正しくバインドされている）
+   - アクセス制御：コンテンツ未デプロイの状態で`403 AccessDenied`（S3非公開設定・OAC経由アクセス制御が正しく機能している証跡。公開バケットであればこの時点でエラー内容が異なる）
+
+### 6.1 最終的なリソース出力値（トラックCへ払い出し）
+
+| 出力名 | 値 |
+| --- | --- |
+| `bucket_name` | `asnomi-dev-site-566759952246` |
+| `distribution_id` | `E14202WQ2RVGSJ` |
+| `distribution_domain_name` | `d1cp5q5toxt6i0.cloudfront.net` |
+| `deploy_role_arn` | `arn:aws:iam::566759952246:role/github-actions-dev-deploy` |
+| `acm_certificate_arn` | `arn:aws:acm:us-east-1:566759952246:certificate/def86e2f-d231-4b50-9941-eb11f7c1a594` |
+
+### 6.2 GitHubでの値管理方針（Variables、Secretsではない）
+
+上記のうちトラックC（GitHub Actionsデプロイワークフロー）が使う3値を、**GitHubの`dev` Environment Variables**（Secretsではない）に登録する。
 
 | 出力名 | 登録先（GitHub `dev` Environment Variables） |
 | --- | --- |
-| `bucket_name` | `S3_BUCKET_NAME` |
-| `distribution_id` | `CLOUDFRONT_DISTRIBUTION_ID` |
-| `deploy_role_arn` | `AWS_DEPLOY_ROLE_ARN` |
+| `bucket_name` | `S3_BUCKET_NAME` = `asnomi-dev-site-566759952246` |
+| `distribution_id` | `CLOUDFRONT_DISTRIBUTION_ID` = `E14202WQ2RVGSJ` |
+| `deploy_role_arn` | `AWS_DEPLOY_ROLE_ARN` = `arn:aws:iam::566759952246:role/github-actions-dev-deploy` |
 
 トラックC側は[設計書_トラックC_インフラCICD.md](./設計書_トラックC_インフラCICD.md) 5.2節の単一環境前提のSecrets構成を、GitHub Environments機能でdev/prod別に分離する対応が必要（同設計書T3-4節に記載済み）。
 
-### 6.1 GitHubでの値管理方針（Variables、Secretsではない）
-
-- 上記3値（バケット名・ディストリビューションID・IAMロールARN）は、いずれもAWSコンソールを見れば分かる非機密情報であり、かつIAMロールはOIDC信頼ポリシー（リポジトリ・ブランチ限定）で保護されているため、ARNが露出しても実害はない。
-- そのため、GitHubの **Secrets ではなく Environment Variables**（`dev` Environment）に登録し、値の可視性・管理性を優先する。
-  - Secretsは値がログ等にマスクされ中身を確認しづらいのに対し、Variablesは値を一覧・確認しやすく、非機密な設定値の管理に向く。
+- 上記3値は、いずれもAWSコンソールを見れば分かる非機密情報であり、かつIAMロールはOIDC信頼ポリシー（リポジトリ・ブランチ限定）で保護されているため、ARNが露出しても実害はない。そのため、GitHubの **Secrets ではなく Environment Variables**（`dev` Environment）に登録し、値の可視性・管理性を優先する。
 - 真に機密な値（長期AWSアクセスキー等）は本設計に一切登場しない（5章参照）。したがって`dev` EnvironmentにSecretsを登録する必要はない。
-- 登録作業は`terraform apply`実行後、実際の出力値が確定してから行う（`gh api`または GitHub UI の Settings → Environments → `dev` → Variables）。
+- 登録作業は`gh` CLI未導入のため未実施。GitHub UIの Settings → Environments → `dev` → Variables から手動登録するか、`gh` CLI導入後に`gh variable set --env dev`で登録する（6.1節の値を使用）。
 - `envs/dev`のTerraform自体（`terraform apply`の実行）は今回のスコープでは**手元（ローカルCLI）実行のまま**とし、CI化（GitHub ActionsからのTerraform実行）は行わない。理由：Terraform実行用にS3/CloudFront/ACM/Route53/IAMを作成できる強い権限のOIDCロールが別途必要になり、設計・レビューの負荷が増すため、今回のスコープ（検証環境構築）ではオーバースペックと判断。将来的にTerraform自体のCI化を検討する場合は別途設計する。
 
 ---
@@ -177,7 +192,9 @@ Terraformコード自体はこのPRで完成させるが、実際の`terraform a
 
 ## 8. 未確定事項・要フォロー
 
-1. **既存オーファンリソース（`EHAFG1OU9KCD7`）の削除実行** — 本書のTerraformコード適用前に、別途明示的な承認を得て実施する（6章1.参照）
-2. **`terraform apply`の実行タイミング** — コード完成後、ユーザーの実行承認を待つ
-3. 本番環境（`asnomi.com`）のTerraform化は本タスクのスコープ外。将来対応する場合は`envs/prod/`を追加する形で本書のモジュールを再利用できる
-4. 要件定義書の「asnoni.com」表記は実際のドメイン「asnomi.com」との誤字と判断したが、要件定義書自体の訂正はPJ管理／レビューセッションの判断に委ねる
+1. ~~既存オーファンリソース（`EHAFG1OU9KCD7`）の削除実行~~ → ✅ 2026-08-30実施完了（6章参照）
+2. ~~`terraform apply`の実行~~ → ✅ 2026-08-30実施完了（bootstrap・global/github-oidc・envs/devすべて適用済み、6章参照）
+3. **GitHubの`dev` Environment Variables登録が未実施** — `gh` CLIがローカル環境に未導入のため、6.1節の3値をGitHub UIから手動登録するか、`gh` CLI導入後に実施する（トラックC側のワークフロー実装前に必要）
+4. 本番環境（`asnomi.com`）のTerraform化は本タスクのスコープ外。将来対応する場合は`envs/prod/`を追加する形で本書のモジュールを再利用できる
+5. 要件定義書の「asnoni.com」表記は実際のドメイン「asnomi.com」との誤字と判断したが、要件定義書自体の訂正はPJ管理／レビューセッションの判断に委ねる
+6. Terraformバックエンド設定の`dynamodb_table`パラメータがTerraform 1.10+で非推奨（新方式`use_lockfile`推奨）という警告が出る。動作に支障はないが、将来のTerraformバージョンアップ時に見直しを検討する
