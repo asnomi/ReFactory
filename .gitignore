@@ -28,6 +28,16 @@ Thumbs.db
 # Claude Code（個人・セッションローカルな権限設定。共有設定は.claude/settings.jsonに置く）
 .claude/settings.local.json
 
+# Terraform（tfstateはS3リモートバックエンドで管理、ローカルには残さない。.terraform.lock.hclは再現性のためコミット対象）
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
 # 未決事項：トラック間ですり合わせ待ちのため一旦除外（決定後に解除・再検討）
 # - content/: （2026-08-26追記）生成先パスの不一致(content/english/portfolio,blog vs content/works,news)は
 #   トラックA側でcontent/works・content/newsに統一し解消済み。ただし本番運用ではcontent/はNotion同期スクリプトが

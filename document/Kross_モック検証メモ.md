@@ -1,6 +1,6 @@
 # Krossモック検証メモ（トラックA: T2-0〜T2-5）
 
-**関連:** [task.md](./task.md) Phase 2 / [要件定義書.md](./要件定義書.md)
+**関連:** [task.md](../task.md) Phase 2 / [要件定義書.md](./要件定義書.md)
 **作成:** 2026-08-25
 **モック配置場所:** `asnomi-kross-mock/`（既存の`asnomi-newgallery/`はQuintテーマの旧検証物のため触れていない）
 
