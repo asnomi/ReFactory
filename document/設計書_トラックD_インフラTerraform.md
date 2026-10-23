@@ -6,7 +6,7 @@
 
 **対応要件:** F-204, NF-101, NF-202
 
-**Document Version:** 0.4（OIDCのsubを実トークン形式（数値ID付き・ref形式）に修正、6.3節を実態に合わせ改訂、6.5節追加）
+**Document Version:** 0.4（OIDCのsubを数値ID付き・Environment形式に修正、6.3節を実態に合わせ改訂、6.5節追加）
 
 **Date:** 2026-08-30（初版）／2026-08-30改訂（terraform apply実行完了、実機構築結果を反映）／2026-10-23改訂（6.3〜6.4節追加）／2026-10-23再改訂（AssumeRole失敗の障害対応を反映）
 
@@ -61,7 +61,7 @@ flowchart LR
 
 **設計の骨子:**
 - S3バケットは完全非公開（Block Public Access全ON）。CloudFrontの **Origin Access Control (OAC)** 経由のみアクセス許可。
-- GitHub ActionsのAWS認証は**OIDC（長期アクセスキー不使用）**。リポジトリ（数値ID付き表記）とブランチ（`refs/heads/dev`）を信頼ポリシーの`sub`で完全一致に限定し（6.3・6.5節参照）、キー漏洩リスクそのものを排除する。
+- GitHub ActionsのAWS認証は**OIDC（長期アクセスキー不使用）**。リポジトリ（数値ID付き表記）とGitHub Environment（`dev`）を信頼ポリシーの`sub`で完全一致に限定し、ブランチはEnvironmentのDeployment branches設定で`dev`のみに限定する（6.3・6.5節参照）。キー漏洩リスクそのものを排除する。
 - IAMロールの権限は対象S3バケット・対象CloudFrontディストリビューションのみに限定した最小権限。
 - 本番（`asnomi.com`）・検証（`dev.asnomi.com`）は完全に別リソース（別S3バケット・別CloudFrontディストリビューション）とし、設定ミスの影響が本番に波及しない構成とする。
 
@@ -118,7 +118,7 @@ terraform/
 | 項目 | 対応 |
 | --- | --- |
 | AWS認証情報の長期保存 | **一切行わない。** GitHub ActionsはOIDCで一時クレデンシャルを都度取得する（`AWS_ACCESS_KEY_ID`等のSecretsは不要） |
-| IAMロールの信頼範囲 | `sub`クレームを`StringEquals`で`repo:asnomi@81574932/ReFactory@1346288783:ref:refs/heads/dev`に完全一致限定（ワイルドカード不使用）。`aud`は`sts.amazonaws.com`。他ブランチ・フォーク・同名の別リポジトリからは引き受け不可（6.3・6.5節） |
+| IAMロールの信頼範囲 | `sub`クレームを`StringEquals`で`repo:asnomi@81574932/ReFactory@1346288783:environment:dev`に完全一致限定（ワイルドカード不使用）。`aud`は`sts.amazonaws.com`。フォーク・同名の別リポジトリからは引き受け不可。ブランチ制限はGitHub `dev` EnvironmentのDeployment branches（`dev`のみ）で担保（6.3・6.5節） |
 | IAMロールの権限範囲 | 対象S3バケットへの`PutObject`/`DeleteObject`/`ListBucket`、対象CloudFrontディストリビューションへの`CreateInvalidation`のみ（最小権限） |
 | S3バケットの公開設定 | Block Public Access全項目ON。バケットポリシーはCloudFrontサービスプリンシパル（`SourceArn`条件で対象ディストリビューションに限定）からの`GetObject`のみ許可 |
 | S3バケットの暗号化 | デフォルトSSE-S3（AES256）を有効化 |
@@ -175,7 +175,7 @@ terraform/
 
 ### 6.3 OIDC信頼ポリシーの`sub`の考え方（2026-10-23）
 
-> **経緯：** 一度「Environment形式（`environment:dev`）へ変更」する案をPR #5で`dev`へマージしたが、同時期にMVP優先の方針変更があり、トラックCは**GitHub Environmentを使わず**リポジトリ直下のVariablesで実装した（`.github/workflows/deploy-dev.yml`、`environment:`なし）。Environment形式はAWSへは一度もapplyしておらず、本節は実際の運用（ref形式）に合わせて改訂した。さらに`sub`のリポジトリ表記が数値ID付きであることが判明したため、6.5節の修正を行った。
+> **経緯：** Environment形式（`environment:dev`）案はPR #5で`dev`のコードにマージされたが、MVP優先の方針変更でAWSへは適用せず、AWS上は初版のref形式のままだった（コードと実環境が不一致）。トラックCは当初`environment:`なしで実装したがAssumeRoleに失敗し、`dev`上のコード（Environment形式）に合わせてPR #7でdeployジョブに`environment: dev`を追加した。最終的に**Environment形式で確定**し（2026-10-23ユーザー判断）、`sub`のリポジトリ表記が数値ID付きであること（6.5節）も反映してAWSへ適用した。
 
 **背景（なぜOIDCか）：** 本リポジトリはPublicのため、長期IAMアクセスキーをSecretsに置く方式は避ける（漏洩時の被害が大きく、ローテーションも手動、誤ってコミットするとSecret Scanningの対象になる）。OIDCはワークフロー実行ごとにGitHubが署名付きトークンを発行し、AWSが検証して短時間で失効する一時クレデンシャルを払い出すため、保存すべき秘密情報が存在しない。
 
@@ -183,15 +183,15 @@ terraform/
 
 | ジョブの書き方 | `sub` |
 | --- | --- |
-| `environment:`なし（**現行のトラックC実装**） | `repo:asnomi@81574932/ReFactory@1346288783:ref:refs/heads/dev` |
-| `environment: dev`あり | `repo:asnomi@81574932/ReFactory@1346288783:environment:dev` |
+| `environment:`なし | `repo:asnomi@81574932/ReFactory@1346288783:ref:refs/heads/dev` |
+| `environment: dev`あり（**現行のトラックC実装・採用**） | `repo:asnomi@81574932/ReFactory@1346288783:environment:dev` |
 
 **実装：**
 - `terraform/modules/static-site/iam.tf`：`sub`条件は`StringEquals`で完全一致（ワイルドカード不使用）。許可する`sub`の値はモジュール変数`github_oidc_subjects`（文字列リスト）で呼び出し側から**完全な値**を渡す。ref形式・Environment形式のどちらにもモジュール変更なしで対応できる。`aud = sts.amazonaws.com`の条件は維持。
-- `envs/dev/main.tf`：`github_oidc_subjects = ["repo:${var.github_repo_subject}:ref:refs/heads/dev"]`（ref形式）。
+- `envs/dev/main.tf`：`github_oidc_subjects = ["repo:${var.github_repo_subject}:environment:dev"]`（Environment形式）。
 - Role名・権限ポリシー（S3/CloudFrontの最小権限）は変更なし。払い出し済みのバケット名・ディストリビューションID・Role ARNも変わらない。
 
-**将来GitHub Environmentを使う場合：** `envs/dev`の`github_oidc_subjects`を`:environment:dev`形式へ差し替える。その際ブランチの限定はIAMではなく、GitHubの`dev` Environmentの **Deployment branches を `dev` ブランチのみ** に設定して担保する（これを行わないと、他ブランチのジョブも`environment: dev`を指定すればRoleを引き受けられてしまう）。本番の`prod` Environmentも同様に本番ブランチのみに限定する（ブランチ名は`master`/`main`でドキュメント間に表記揺れがあるため、prod構築時に確定）。
+**前提となるGitHub側設定（ユーザーがUIから実施）：** Environment形式の`sub`にはブランチ情報が含まれないため、ブランチの限定はIAMではなく、GitHubの`dev` Environmentの **Deployment branches を `dev` ブランチのみ**（Selected branches）に設定して担保する。**これを行わないと、他ブランチのジョブも`environment: dev`を指定すればRoleを引き受けられてしまう。** 本番の`prod` Environmentも同様に本番ブランチのみに限定する（ブランチ名は`master`/`main`でドキュメント間に表記揺れがあるため、prod構築時に確定）。なお、トラックCのワークフローは値をリポジトリ直下のVariables（`vars.*`）から読む。リポジトリVariablesは`environment:`付きのジョブからも参照できる。
 
 ### 6.4 CloudFrontでのサブディレクトリindex.html解決（2026-10-23）
 
@@ -219,11 +219,11 @@ terraform/
 | | `sub` |
 | --- | --- |
 | 信頼ポリシー（初版） | `repo:asnomi/ReFactory:ref:refs/heads/dev` |
-| 実トークン | `repo:asnomi@81574932/ReFactory@1346288783:ref:refs/heads/dev` |
+| 実トークン（`environment:`なしのジョブ） | `repo:asnomi@81574932/ReFactory@1346288783:ref:refs/heads/dev` |
 
-GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`81574932`、リポジトリID`1346288783`）を付けた形式で`sub`を発行していたため、文字列が一致しなかった。
+GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`81574932`、リポジトリID`1346288783`）を付けた形式で`sub`を発行していたため、文字列が一致しなかった。（トラックCがPR #7で`environment: dev`を追加したが、AWS上の信頼ポリシーはref形式・ID無しのままだったため、それだけでは解消しない状態だった。）
 
-**対応：** 信頼ポリシーの`sub`を実トークンの形式に合わせ、`StringEquals`の完全一致とした（6.3節の実装）。リポジトリ表記は`envs/dev`の変数`github_repo_subject`（既定値`asnomi@81574932/ReFactory@1346288783`）で管理する。
+**対応：** 信頼ポリシーの`sub`を数値ID付き・Environment形式（`repo:asnomi@81574932/ReFactory@1346288783:environment:dev`）とし、`StringEquals`の完全一致とした（6.3節の実装）。リポジトリ表記は`envs/dev`の変数`github_repo_subject`（既定値`asnomi@81574932/ReFactory@1346288783`）で管理する。
 
 **セキュリティ上の効果：** 数値IDはリポジトリ削除・改名後も別のリポジトリに引き継がれないため、名前だけの`sub`より強い。同名のリポジトリを第三者が作り直した場合や、リポジトリの改名・移管があった場合でも、このRoleを引き受けられない（リポジトリを作り直した場合はIDが変わるため、本変数の更新が必要）。
 
@@ -250,8 +250,8 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 
 1. ~~既存オーファンリソース（`EHAFG1OU9KCD7`）の削除実行~~ → ✅ 2026-08-30実施完了（6章参照）
 2. ~~`terraform apply`の実行~~ → ✅ 2026-08-30実施完了（bootstrap・global/github-oidc・envs/devすべて適用済み、6章参照）
-3. ~~GitHubの`dev` Environment Variables登録~~ → MVP方針変更により、トラックCはGitHub Environmentを使わずリポジトリ直下のVariables（`vars.*`）で実装（6.3節）。6.2節の「Environment Variables」は「リポジトリVariables」と読み替える
+3. ~~GitHubの`dev` Environment Variables登録~~ → トラックCは値をリポジトリ直下のVariables（`vars.*`）から読む実装（6.3節）。6.2節の「Environment Variables」は「リポジトリVariables」と読み替える。**ただしGitHubの`dev` Environment自体の作成と、Deployment branchesを`dev`のみにする設定は必須（ユーザーがUIから実施）**
 4. 本番環境（`asnomi.com`）のTerraform化は本タスクのスコープ外。将来対応する場合は`envs/prod/`を追加する形で本書のモジュールを再利用できる
 5. 要件定義書の「asnoni.com」表記は実際のドメイン「asnomi.com」との誤字と判断したが、要件定義書自体の訂正はPJ管理／レビューセッションの判断に委ねる
 6. Terraformバックエンド設定の`dynamodb_table`パラメータがTerraform 1.10+で非推奨（新方式`use_lockfile`推奨）という警告が出る。動作に支障はないが、将来のTerraformバージョンアップ時に見直しを検討する
-7. **将来GitHub Environmentを使う場合は`envs/dev`の`github_oidc_subjects`を`:environment:dev`形式へ差し替える**（モジュールの変更は不要）。あわせてGitHub側でEnvironmentのDeployment branchesを`dev`のみに設定すること（6.3節）
+7. 将来`prod`環境を追加する際は、`envs/prod`の`github_oidc_subjects`を`repo:asnomi@81574932/ReFactory@1346288783:environment:prod`とし、GitHubの`prod` EnvironmentのDeployment branchesを本番ブランチのみに設定する（モジュールの変更は不要）

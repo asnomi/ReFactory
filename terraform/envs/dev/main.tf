@@ -53,7 +53,7 @@ module "dev_site" {
   enable_versioning = true
   oidc_provider_arn = data.terraform_remote_state.global_oidc.outputs.oidc_provider_arn
 
-  # トラックCのワークフロー（.github/workflows/deploy-dev.yml）はenvironment:を付けず、devブランチへのpushで動く。
-  # そのためsubはref形式。GitHub Environmentを使う場合は ":environment:dev" 形式に差し替えること。
-  github_oidc_subjects = ["repo:${var.github_repo_subject}:ref:refs/heads/dev"]
+  # トラックCのワークフロー（.github/workflows/deploy-dev.yml）はdeployジョブに`environment: dev`を付けるため、
+  # subはEnvironment形式になる。ブランチの限定はGitHubのdev Environmentの「Deployment branches = devのみ」で担保する。
+  github_oidc_subjects = ["repo:${var.github_repo_subject}:environment:dev"]
 }
