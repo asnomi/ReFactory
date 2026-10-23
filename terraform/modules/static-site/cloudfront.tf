@@ -9,6 +9,14 @@ data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
 }
 
+resource "aws_cloudfront_function" "index_rewrite" {
+  name    = "${var.environment}-index-rewrite"
+  runtime = "cloudfront-js-2.0"
+  comment = "Resolve directory URIs to index.html (${var.environment})"
+  publish = true
+  code    = file("${path.module}/functions/index-rewrite.js")
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -30,6 +38,11 @@ resource "aws_cloudfront_distribution" "site" {
     cached_methods         = ["GET", "HEAD"]
     compress               = true
     cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.index_rewrite.arn
+    }
   }
 
   # Hugoが生成する404.htmlをそのままCloudFrontのカスタムエラーページとして使う

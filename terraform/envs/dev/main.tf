@@ -45,13 +45,13 @@ module "dev_site" {
     aws.us_east_1 = aws.us_east_1
   }
 
-  environment       = "dev"
-  domain_name       = var.domain_name
-  bucket_name       = var.bucket_name
-  hosted_zone_id    = var.hosted_zone_id
-  price_class       = "PriceClass_100"
-  enable_versioning = true
-  github_repo       = var.github_repo
-  github_ref        = "refs/heads/dev"
-  oidc_provider_arn = data.terraform_remote_state.global_oidc.outputs.oidc_provider_arn
+  environment        = "dev"
+  domain_name        = var.domain_name
+  bucket_name        = var.bucket_name
+  hosted_zone_id     = var.hosted_zone_id
+  price_class        = "PriceClass_100"
+  enable_versioning  = true
+  github_repo        = var.github_repo
+  github_environment = "dev"
+  oidc_provider_arn  = data.terraform_remote_state.global_oidc.outputs.oidc_provider_arn
 }
