@@ -6,7 +6,7 @@
 
 **対応要件:** F-301, F-302, F-303, F-304
 
-**Document Version:** 1.2（404ページ出力・検証環境のindex除外を反映）
+**Document Version:** 1.3（実コンテンツへの差し替え、本番ビルド検証結果を反映）
 
 **Date:** 2026-08-25（初版）／2026-08-26改訂（トラックBの[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md)に合わせ、コンテンツ出力パスを`content/works/`・`content/news/`に統一。詳細は7.5節）／2026-10-23改訂（404.html出力不具合の修正、検証環境のnoindex/robots.txt対応。詳細は7.6節）
 
@@ -195,9 +195,39 @@ MVPデプロイ（`dev.asnomi.com`）後に判明した2点への対応。いず
 
 **検証結果（ローカル、`hugo --baseURL`切替）:** `https://dev.asnomi.com/`ではrobots.txtが全拒否・全ページにnoindexメタ・`404.html`出力あり。`https://asnomi.com/`ではrobots.txtが`Allow`＋Sitemap・noindexメタなし・`404.html`出力あり。デプロイ後の`curl -I https://dev.asnomi.com/not-exist/`による404応答確認は、マージ後のdev自動デプロイで実施する。
 
+### 7.7 実コンテンツへの差し替え（2026-10-23）
+
+ダミーだったヒーロー・テキスト・SNS・メタ情報を実素材に差し替えた。作品・ニュースは素材待ちのためダミーのまま（Notion連携までは本リポジトリのファイルで管理）。
+
+| 項目 | 内容 | 管理場所 |
+| --- | --- | --- |
+| ヒーロー画像 | `assets/images/hero/hero.jpg`（2400×1350）。ビルド時に768/1280/1920pxのWebPへ変換（4.2MB→79〜451KB）し`srcset`で出し分け。キャッチコピー・サブテキストは未使用（空） | `content/_index.md`の`banner` |
+| トップのabout文 | 「趣味でイラストレーター/シンガーソングライターしてる…」 | `content/_index.md`の`about.content` |
+| プロフィール | Notion「0. asnomi studioについて」の2026/3/28断面（公式文）。プロフィール画像は未設定（任意項目） | `content/about.md` |
+| SNS | X / Instagram / YouTube / SoundCloud / はてなブログ / Pixiv / TuneCore Japan（表示順どおり）。ヒーロー（アイコン）とお問い合わせページ（アイコン+名称）で共通 | `config/_default/params.toml`の`[[social]]` |
+| サイト名・メタ | サイト名`asnomi studio`、description/keywords/author、`lang="ja"`、OGP既定画像（現行サイトの720×420を流用） | `config/_default/hugo.toml`・`params.toml`の`[metadata]`、`static/images/ogp.jpg` |
+| フッター | `©2012-{ビルド年} asnomi studio`のみ（終了年はビルド時に自動更新）。Kross標準のお問い合わせフォーム・連絡先欄は撤去 | `layouts/partials/essentials/footer.html`、`params.toml`の`copyright_since`/`copyright_holder` |
+
+**テンプレート側の変更点（プロジェクト側`layouts/`のオーバーライド）:**
+- `layouts/index.html`: ヒーローを`assets/`画像のレスポンシブ`<img>`化。コピー無しでも`<h1>`（視覚的には非表示）を出力。
+- `layouts/partials/social-links.html`（新規）: SNS一覧の共通部品。テーマにアイコンが無いサービスは`badge`（丸囲み文字）で代用。※テーマ標準のお問い合わせページは`.URL`を参照しておりリンクが空になる不具合があったため、本部品に置き換えた。
+- `layouts/_default/about.html`（新規）: プロフィール画像を任意化し、個人サイトに不要なWork Process/Team/Clients区画を除去。
+- `layouts/partials/components/page-title.html`（新規）: 下層ページ見出しのカラフルな装飾イラストを撤去。
+- `layouts/partials/essentials/header.html`（新規）: 「Home」→「ホーム」。
+- `layouts/partials/essentials/head.html`: `<title>`の二重出力（テーマ標準で`basic-seo`と重複）を解消。
+
+**表示確認:** PC幅・スマホ幅（390px）でヒーロー・SNS・プロフィール・お問い合わせを目視確認。スマホ幅では`fixed`ヘッダーがヒーロー上部に被るため、991px以下ではヒーローをヘッダー高（114px）だけ下げている。
+
+**本番ビルドの検証結果（Track C設計書8章「未検証」項目への回答）:** Node.js導入環境で`npm ci`＋`HUGO_ENVIRONMENT=production hugo --gc --minify --baseURL https://dev.asnomi.com/`を実行し、**ビルドは成功**した。一方で、**PurgeCSSが実質無効**であることが判明した。テーマの`postcss.config.js`のsafelistに`/[aria-expanded=true]/`と書かれているが、正規表現では文字クラス（`a-e`・`r`・`i`・`t`等の任意の1文字）になり、ほぼ全てのセレクタがsafelist扱いとなって削除されない。インラインCSSは約260KB（ページHTMLは約500KB）のまま。`\[aria-expanded=true\]`とエスケープすると約56KB（HTML約300KB）になり、`hugo_stats.json`が無いCI同様のコールドスタートでも同じ結果だった。ただし実際に削除されるクラスの影響（JSが付け外しするクラス等）の目視確認が必要なため、**本PRでは`postcss.config.js`を変更せず、別PRで対応する**（8章バックログ）。
+
 ---
 
 ## 8. 未対応・今後の課題（バックログ）
+
+- **PurgeCSSの設定不備の修正（NF-102）**: 7.7節参照。`postcss.config.js`のsafelistの正規表現エスケープ修正と、モバイルメニュー・カテゴリ絞り込み・ホバー表示等の目視確認。
+- **作品・ニュースの実データ差し替え**: 素材待ち。差し替えまでの作品・ニュースは、Kross付属のサンプル画像を使ったダミー。
+- **ファビコン・SNS共有画像**: ファビコンはKross標準のまま。OGP既定画像は現行サイトの720×420（推奨1200×630より小さい）を流用中。
+- **プロフィール画像・お問い合わせ手段**: プロフィール画像は未設定。フッターのお問い合わせフォーム（送信先未設定で動作しなかった）を撤去したため、「お問い合わせ」ページは現状SNS・リンク一覧のみ。連絡手段の方針（メールアドレス掲載／フォーム導入／ページ名変更）は要判断。
 
 - **F-303: ギャラリーの年別ソート/グルーピング機能**（2026-08-25申し送り決定、5章参照）: MVP稼働後に改めて検討
 - **ダークモード対応**: 現行サイトにはあるが、Kross標準にはない。追加SCSS実装が必要
