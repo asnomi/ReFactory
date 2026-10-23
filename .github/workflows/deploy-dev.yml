@@ -1,0 +1,73 @@
+# MVP版: dev ブランチの asnomi-kross-mock/ をビルドして dev.asnomi.com へデプロイする。
+# スコープ外（後続対応）: Notion同期 / cron / main(本番)デプロイ / GitHub Environment分離
+#
+# 注意: GitHub Environment は使わない（environment: を付けない）。
+#   OIDC信頼ポリシーが repo:asnomi/ReFactory:ref:refs/heads/dev 固定のため、
+#   Environmentを付けるとsubが変わりAssumeRoleに失敗する。値はリポジトリ直下のVariables(vars.*)から読む。
+name: deploy-dev
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false # デプロイ(S3 sync)の途中打ち切りを避け、後続は待機させる
+
+env:
+  HUGO_VERSION: 0.152.2
+  HUGO_ENVIRONMENT: production # PostCSS/PurgeCSS分岐（hugo.IsProduction）を確実に通す
+  SITE_URL: https://dev.asnomi.com/
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: asnomi-kross-mock # サイトルート（hugo.toml / package.json の場所）
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true # themes/kross（git submodule）
+
+      - uses: actions/setup-go@v5 # Hugo Modules(go.mod)用
+        with:
+          go-version: '1.23'
+          cache-dependency-path: asnomi-kross-mock/go.sum
+
+      - uses: actions/setup-node@v4 # 本番ビルドのPostCSS/PurgeCSS用
+        with:
+          node-version: '24' # LTS（20は2026-04にEOL。ローカルでの検証・package-lock.json生成と同一メジャー）
+          cache: npm
+          cache-dependency-path: asnomi-kross-mock/package-lock.json
+      - run: npm ci
+
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
+
+      - name: Hugo build
+        run: hugo --gc --minify --baseURL ${{ env.SITE_URL }}
+
+      # OIDCの信頼ポリシーは refs/heads/dev 固定のため、dev以外のrefからの手動実行はビルド確認のみで終える
+      - name: Configure AWS credentials (OIDC)
+        if: github.ref == 'refs/heads/dev'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Sync to S3
+        if: github.ref == 'refs/heads/dev'
+        run: aws s3 sync public/ "s3://${{ vars.S3_BUCKET_NAME }}" --delete
+
+      - name: Invalidate CloudFront
+        if: github.ref == 'refs/heads/dev'
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/*"
