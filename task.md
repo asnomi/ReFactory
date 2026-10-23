@@ -1,10 +1,23 @@
 # タスクリスト
 
-## ポートフォリオサイト（asnoni.com）リプレイス
+## ポートフォリオサイト（asnomi.com）リプレイス
 
 **元ドキュメント:** [要件定義書.md](document/要件定義書.md)（Version 1.0 / 2026-07-15）
 
 **方針:** 本タスクリストはWBS（作業分解）のみを目的とする。サンプルコード・実装コードは含めない（別途用意され次第、各タスクに反映する）。
+
+---
+
+## 現在地（2026-10-23時点）
+
+| トラック | 状況 |
+| --- | --- |
+| A（フロント/Kross） | モック完成・`dev`マージ済み（content出力パスをBの設計に統一）。次は本実装フェーズ待ち |
+| B（Notion連携） | 設計完了。実装は未着手（ブランチに差分コミット無し）。T1-3の詳細仕様が未確定 |
+| C（CI/CD） | 設計は一通り完了だが T3-1 が 🔴 未修正。実装は未着手 |
+| D（インフラ/Terraform） | dev環境（`dev.asnomi.com`）をapply済み。修正ブランチはレビュー済み（マージ可）。OIDC信頼ポリシーとCloudFront index対応が要修正 |
+
+**クリティカルパス:** トラックDの🔴2件の修正 → GitHub `dev` Environment Variables登録 → トラックCのワークフロー実装（T3-1修正・T3-4分岐）→ `dev.asnomi.com`でモックを確認。トラックBの同期スクリプトはこれと並行して進められる。
 
 ---
 
@@ -131,14 +144,19 @@
 
 - [ ] **T3-4. ブランチ別マルチ環境デプロイ**（2026-08-26追加、要件定義書5章 F-204 参照）
   - 内容: `main`→本番(`asnomi.com`)、`dev`→検証環境(`dev.asnomi.com`)へそれぞれ別デプロイ先(S3, AWS CLI)に振り分ける。
-  - **【トラックD担当】インフラのプロビジョニング（Terraform）:**
-    - [ ] dev用S3バケットを新規作成するか検討（新規バケット vs 既存バケット内の別パス配信）
-    - [ ] dev用CloudFrontディストリビューションの要否（新規ディストリビューション vs 既存に別オリジン/ビヘイビア追加）
-    - [ ] `dev.asnomi.com`のDNSレコード追加（Route53想定・現行DNS管理方式に準拠）
-    - [ ] ACM証明書が`dev.asnomi.com`をカバーしているか確認（ワイルドカード証明書でなければ追加発行が必要）
-    - [ ] OIDC用IAM Role（GitHub Actionsが引き受ける、設計書5.1節）のTerraform化
-    - [ ] 上記構築後、**S3バケット名・CloudFrontディストリビューションID・IAM Role ARNをトラックCへ払い出す**
-  - **【トラックC担当】ワークフロー側の対応（トラックDの払い出し完了後に着手）:**
+  - 設計・実行結果: [設計書_トラックD_インフラTerraform.md](document/設計書_トラックD_インフラTerraform.md)（`terraform/`配下にコード）
+  - **【トラックD担当】インフラのプロビジョニング（Terraform）— dev環境は構築完了（2026-08-30 apply済み）:**
+    - [x] dev用S3バケットを新規作成（`asnomi-dev-site-…`。`dev.asnomi.com`はバケット名として他アカウントに既存のためアカウントID入りの別名を採用）
+    - [x] dev用CloudFrontディストリビューションを新規作成（OACでS3を非公開化）
+    - [x] `dev.asnomi.com`のDNSレコード追加（Route53 A/AAAA）
+    - [x] ACM証明書の発行（us-east-1、DNS検証）
+    - [x] OIDC用IAM Role（GitHub Actionsが引き受ける）のTerraform化・作成
+    - [x] S3バケット名・CloudFrontディストリビューションID・IAM Role ARNの払い出し（設計書トラックD 6.1節）
+    - [ ] 🟡 **GitHub `dev` Environment Variables への登録が未実施**（`gh` CLI未導入のためUIから手動登録が必要）
+    - [ ] 🔴 **OIDC信頼ポリシーの修正**: 現状 `sub` が `ref:refs/heads/dev` 固定。トラックCが GitHub Environment（`environment: dev`）を使うと `sub` が `environment:dev` 形式に変わり AssumeRole が失敗する（2026-10-23レビュー指摘）
+    - [ ] 🔴 **CloudFrontのサブディレクトリindex対応**: OAC+S3（REST）構成のため `/portfolio/` 等が `index.html` に解決されず404になる。CloudFront Function（viewer-request）で `/` 終端URIを `index.html` に書き換える対応が必要（2026-10-23レビュー指摘）
+    - [ ] 本番環境（`asnomi.com`）のTerraform化（`envs/prod/`追加）— 時期未定
+  - **【トラックC担当】ワークフロー側の対応（トラックDの払い出し完了済み。上記🔴の修正見込みを踏まえて着手可）:**
     - [ ] GitHub Actionsワークフロー（T3-1）に、pushされたブランチ（`main`/`dev`）に応じてデプロイ先（S3バケット名・CloudFrontディストリビューションID）を切り替える分岐ロジックを追加
     - [ ] Secrets/Variables構成の見直し（環境ごとに異なる値を持つため、GitHub Environments機能での分離を検討 — 設計書5.2節は単一環境前提だったため要更新）
   - [ ] NF-202コスト試算（T4-4）への影響を反映（dev環境分のS3・CloudFront費用を追加試算）→ トラックD
@@ -151,7 +169,7 @@
 ### 可用性・パフォーマンス（Block 4）
 
 - [ ] **T4-1. インフラ可用性の確認** 🟡 チェックリスト化完了、現行設定の実地確認は未実施　**【トラックD担当】**
-  - [ ] S3 + CloudFront構成の現行踏襲・設定確認 → 設計書6章に確認項目リスト化済み（OAC設定・HTTPS証明書・DNS等が「要確認」のまま）。Terraform化する際にあわせて実地確認・反映する。
+  - [ ] S3 + CloudFront構成の現行踏襲・設定確認 → 設計書6章に確認項目リスト化済み。**dev環境はapply後の実機確認でDNS解決・HTTPS・OAC経由の非公開アクセス（未デプロイ時403）を確認済み**。本番（`asnomi.com`）側の現行設定確認は未実施。
   - 関連要件: NF-101
 
 - [ ] **T4-2. 画像処理・高速表示対応** 【トラックA/B担当・変更なし】
@@ -213,6 +231,24 @@
 - i18n（UI文字列の日本語化）は正式実装フェーズの必須対応としてPhase 2に追記済み。
 
 上記を踏まえてtask.mdのチェックボックス・ステータスを更新済み（Phase 1・Phase 3の完了状況を反映、T3-1に修正フラグを付与）。
+
+---
+
+## レビュー結果（2026-10-23／PJ管理セッション実施）— トラックD `feature/track-d-dev-apply-fixes`
+
+対象: apply実行時の修正2件（S3バケット名の分離、OIDC thumbprint）＋ 設計書トラックD更新。あわせて、未レビューだったマージ済みPR #3のTerraformコード（IAM・S3・CloudFront）も確認した。
+
+**判定: このブランチはそのままマージ可。** コードはapply済みの実機と一致させる内容で、修正自体も妥当（バケット名のグローバル一意性、thumbprintの桁不足）。
+
+### 🔴 要修正（別ブランチで対応・トラックC着手前に必要）
+1. **OIDC信頼ポリシーと GitHub Environments の不整合**: IAM Roleの `sub` 条件が `repo:…:ref:refs/heads/dev` のみ。設計方針（`dev` Environment の Variables 利用）に従いジョブに `environment: dev` を付けると `sub` は `repo:…:environment:dev` になり、AssumeRole が失敗する。信頼ポリシーを `environment:dev` に合わせ、ブランチ限定は Environment の deployment branch rule（`dev`のみ）で担保する形を推奨。
+2. **サブディレクトリが404になる**: CloudFrontは `default_root_object` のみで、`/portfolio/` `/blog/` 等のURIを `index.html` に解決する仕組みが無い（S3 RESTオリジン+OACの仕様）。トップページ以外は全て404になるため、CloudFront Function（viewer-request）の追加が必要。dev環境でモックを見る目的に直結する。
+
+### 🟢 軽微・情報
+- thumbprint修正: 1文字不足の既知値（末尾`5`欠落）を直すだけでも足りたが、実測値への置換でも問題ない（AWSはGitHubのOIDCではthumbprintを検証しない）。
+- AWSアカウントIDがPublicリポジトリのコード・設計書に含まれる。AWS上は機密扱いではないが、気になる場合は `bucket_name` を `tfvars` 化するか、記載を整理する。
+- 設計書8章6（`dynamodb_table` 非推奨警告）は妥当な将来課題として据え置きでよい。
+- 要件定義書・task.md の「asnoni.com」表記は誤字のため「asnomi.com」に訂正した（フォルダ名は変更なし）。
 
 ---
 
