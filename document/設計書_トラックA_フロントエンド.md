@@ -6,9 +6,9 @@
 
 **対応要件:** F-301, F-302, F-303, F-304
 
-**Document Version:** 1.1（トラックB(Notionデータ連携)とのコンテンツ出力パス整合を反映）
+**Document Version:** 1.2（404ページ出力・検証環境のindex除外を反映）
 
-**Date:** 2026-08-25（初版）／2026-08-26改訂（トラックBの[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md)に合わせ、コンテンツ出力パスを`content/works/`・`content/news/`に統一。詳細は7.5節）
+**Date:** 2026-08-25（初版）／2026-08-26改訂（トラックBの[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md)に合わせ、コンテンツ出力パスを`content/works/`・`content/news/`に統一。詳細は7.5節）／2026-10-23改訂（404.html出力不具合の修正、検証環境のnoindex/robots.txt対応。詳細は7.6節）
 
 ---
 
@@ -167,6 +167,33 @@ Kross標準ではCSSが外部リンクファイルではなく、各HTMLペー�
 **改修コストの実績:** 事前見積もり通り「フォルダリネーム＋文字列2箇所＋設定ファイル調整」の範囲で完結。Shuffle.jsのカテゴリ絞り込みロジックや`_default/list.html`（ニュース一覧の汎用テンプレート）・`_default/post.html`（ニュースカード）はセクション名に依存しない実装のため無変更で動作した。
 
 **検証結果:** `hugo --environment development`でのビルド成功、`hugo server`で`/`・`/works/`・`/works/project-1/`・`/news/`が全て200応答、ホームの作品ギャラリー・お知らせセクション、`/works/`のカテゴリフィルター（すべて/イラスト/グラフィック/漫画/らくがき）とも表示内容を確認済み。
+
+### 7.6 404ページの出力と検証環境のindex除外（2026-10-23）
+
+MVPデプロイ（`dev.asnomi.com`）後に判明した2点への対応。いずれもプロジェクト側`layouts/`の追加のみで、テーマ本体（サブモジュール）は変更していない。
+
+**① 404.htmlが出力されない不具合**
+
+- 症状: 存在しないURLで404ページではなく403が返る（CloudFrontは`/404.html`を返す設定済みだが、成果物に`404.html`が無かった）。
+- 原因: サブモジュールで固定しているKross本体の`layouts/404.html`が**0バイトの空ファイル**（上流の`Update file by Sitepins`コミットで空になっている）。Hugoは空テンプレートからは`404.html`を出力しない。
+- 対応: `layouts/404.html`をプロジェクト側に新規作成（日本語の404ページ。トップ・作品一覧への導線付き）。どの階層のURLでも表示されるため、リンクは`relURL`によるルート相対で記述。
+- 備考: テーマ側が将来修正されても、プロジェクト側が優先されるため影響しない。
+
+**② 検証環境を検索エンジンに載せない**
+
+| 項目 | 内容 |
+| --- | --- |
+| 判定方法 | `baseURL`のホスト名が`params.indexableHosts`（`config/_default/params.toml`、初期値`asnomi.com`・`www.asnomi.com`）に含まれる場合のみインデックス許可。それ以外（`dev.asnomi.com`、`localhost`等）は除外 |
+| 判定の実装 | `layouts/partials/is-indexable.html`（true/falseを返す） |
+| 除外時の出力 | `robots.txt`が`Disallow: /`、全ページの`<head>`に`<meta name="robots" content="noindex, nofollow">` |
+| 許可時の出力 | `robots.txt`が`Allow: /`＋`Sitemap:`、noindexメタなし |
+| 関連ファイル | `layouts/robots.txt`、`layouts/partials/essentials/head.html`（テーマ版をコピーしnoindex出力を追加）、`config/_default/hugo.toml`（`enableRobotsTXT = true`） |
+
+- Hugoの`environment`ではなくbaseURLで切り替える理由: 現行ワークフローは検証環境・本番ともに`HUGO_ENVIRONMENT=production`（PostCSS/PurgeCSS分岐を通すため）であり、environmentでは区別できない。baseURLは既にワークフローで`--baseURL https://dev.asnomi.com/`と指定されているため、**ワークフロー側の変更は不要**（トラックCとの調整事項なし）。
+- **注意（本番公開時）:** 本番のbaseURLが`indexableHosts`に無いと、本番が意図せずnoindexになる。本番デプロイ用ワークフローを作る際（トラックC）は、`--baseURL`のホスト名が`indexableHosts`に含まれることを必ず確認する。
+- 補足: `robots.txt`のDisallowとnoindexメタは併用している。Googleは「robots.txtでブロックされたページのnoindexは読めない」ため、外部リンクで発見された場合のURL単体インデックスまでは完全には防げない。検証環境は外部リンクが無い前提で実害は小さいが、より確実にしたい場合はCloudFront側で`X-Robots-Tag: noindex`レスポンスヘッダを付与する案がある（トラックD領域、必要になれば相談）。
+
+**検証結果（ローカル、`hugo --baseURL`切替）:** `https://dev.asnomi.com/`ではrobots.txtが全拒否・全ページにnoindexメタ・`404.html`出力あり。`https://asnomi.com/`ではrobots.txtが`Allow`＋Sitemap・noindexメタなし・`404.html`出力あり。デプロイ後の`curl -I https://dev.asnomi.com/not-exist/`による404応答確認は、マージ後のdev自動デプロイで実施する。
 
 ---
 

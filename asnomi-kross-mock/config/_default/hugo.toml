@@ -17,6 +17,9 @@ disableLanguages = []  # example: ["fr"] for disable french language. see https:
 hasCJKLanguage = false #  If hasCJKLanguage true, auto-detect Chinese/Japanese/Korean Languages in the content. see: https://gohugo.io/getting-started/configuration/#hascjklanguage
 
 
+# robots.txt を layouts/robots.txt から生成する（検証環境は全拒否、本番のみ許可。partials/is-indexable.html 参照）
+enableRobotsTXT = true
+
 ############################# Build ##############################
 [build]
 writeStats = true
