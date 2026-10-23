@@ -12,8 +12,8 @@
 
 | トラック | 状況 |
 | --- | --- |
-| A（フロント/Kross） | モック完成・`dev`マージ済み（content出力パスをBの設計に統一）。次は本実装フェーズ待ち |
-| B（Notion連携） | ⏸ 一時停止（MVP優先のため）。DB定義はKross要件に合わせてユーザーが再検討中 |
+| A（フロント/Kross） | 🎯 次の作業（依頼済み 2026-10-23）: 404.html出力の不具合修正、dev環境のnoindex化、ヒーロー・プロフィール・SNS等を実素材に差し替え、サイト内容の更新手順書作成 |
+| B（Notion連携） | ⏸ 一時停止中。再開の前提として、Kross要件に合わせたNotion DB定義をユーザーが作成中（2026-10-23〜） |
 | C（CI/CD） | ✅ MVP完了（2026-10-23）。`dev`へのpushで`asnomi-kross-mock/`をビルド→S3 sync→Invalidationし、`dev.asnomi.com`へのデプロイ成功（PR #6, #7。`deploy-dev.yml`）。`main`向け分岐・cron・Notion同期は後続 |
 | D（インフラ/Terraform） | ✅ dev環境のMVP対応完了（CloudFront Functionでサブディレクトリindex解決、OIDC信頼ポリシーを実トークン形式に修正・apply済み 2026-10-23）。次は本番Terraform化等（時期未定） |
 
