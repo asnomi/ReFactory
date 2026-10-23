@@ -6,9 +6,9 @@
 
 **対応要件:** F-201, F-202, F-203, NF-101, NF-202
 
-**Document Version:** 0.5（MVP版ワークフロー追加。9章参照。2.3以降のフル版は後続フェーズ扱い）
+**Document Version:** 0.6（MVP版: deployジョブに environment: dev を追加。9章参照）
 
-> **📌 2026-10-23 方針変更:** 最優先は「Krossモックを `dev.asnomi.com` で見られる状態にする」こと。実装済みの最小ワークフローは [`.github/workflows/deploy-dev.yml`](../.github/workflows/deploy-dev.yml)（**9章**参照）。Notion同期・cron・本番(main)デプロイ・GitHub Environment分離は**後続扱い**で、2〜5章のフル版設計はその際のベースとして残す。
+> **📌 2026-10-23 方針変更:** 最優先は「Krossモックを `dev.asnomi.com` で見られる状態にする」こと。実装済みの最小ワークフローは [`.github/workflows/deploy-dev.yml`](../.github/workflows/deploy-dev.yml)（**9章**参照）。Notion同期・cron・本番(main)デプロイ・`prod` Environment分離は**後続扱い**で、2〜5章のフル版設計はその際のベースとして残す。なお当初の「Environmentを使わない」方針は、トラックDが信頼ポリシーをEnvironment形式へ変更したため撤回し、deployジョブに`environment: dev`を付けた（9.2参照）。
 
 **Date:** 2026-08-24（初版）／2026-08-25改訂（Kross_モック検証メモ.mdの実装事情をT3-1に反映）／2026-08-25再改訂（8章 未確定事項6〜9をTrack A側で確定・反映）／2026-08-25再々改訂（Track A確定事項を実機`asnomi-kross-mock/`と突き合わせて内容精査。YAMLのステップ順序バグを修正し、PostCSS/PurgeCSS本番ビルドが未実証である点をリスクとして明記）
 
@@ -401,25 +401,34 @@ Secretsは全て **リポジトリSecrets**（Environment分離は現時点で�
 | --- | --- | --- |
 | トリガー | `push`（`dev`）＋`workflow_dispatch` | ＋`schedule`(cron)、`main`向け本番デプロイ |
 | Notion同期 | なし（コミット済みダミーコンテンツをビルド） | あり（トラックB再開後） |
-| GitHub Environment | **使わない**（`environment:`を付けない） | OIDC信頼ポリシー修正後に検討 |
-| 値の参照元 | リポジトリ直下の Variables（`vars.*`） | Secrets/Environment分離 |
+| GitHub Environment | **deployジョブのみ `environment: dev`**（OIDC信頼ポリシーがEnvironment形式のため。2026-10-23訂正） | ＋`prod` Environment |
+| 値の参照元 | Variables（`vars.*`、現状はリポジトリ直下に登録済み。Environment変数に移しても同名で読める） | Environment別に分離 |
 | 対象環境 | `dev.asnomi.com` のみ | ＋本番 `asnomi.com` |
 
-### 9.2 ステップ（作業ディレクトリは `asnomi-kross-mock/`）
+### 9.2 ジョブ・ステップ
+
+**`build` ジョブ**（Environmentなし。作業ディレクトリは `asnomi-kross-mock/`）
 
 1. checkout（`submodules: true`）
 2. Go（Hugo Modules用）— `setup-go`、`go.sum`でキャッシュ
 3. Node.js 24(LTS) ＋ `npm ci`（本番ビルドのPostCSS/PurgeCSS用）— `package-lock.json`でキャッシュ
 4. Hugo **0.152.2 extended**（`peaceiris/actions-hugo`）
 5. `hugo --gc --minify --baseURL https://dev.asnomi.com/`（`HUGO_ENVIRONMENT=production`）
-6. OIDCでロール引受（`aws-actions/configure-aws-credentials`、region `ap-northeast-1`）
-7. `aws s3 sync public/ s3://$S3_BUCKET_NAME --delete`
-8. CloudFront Invalidation（`/*`）
+6. `public/` をartifactとしてアップロード（`include-hidden-files: true`。`.htaccess`・`.well-known`が既定では除外されるため）
 
-- `permissions: id-token: write, contents: read`、`concurrency: deploy-dev`（`cancel-in-progress: false`。S3 syncの途中打ち切りを避け、後続は待機）。
-- **`dev` 以外のrefからの手動実行:** 6〜8（AWS関連）を `if: github.ref == 'refs/heads/dev'` でスキップし、ビルド確認のみ行う。OIDC信頼ポリシーが `refs/heads/dev` 固定のため。`dev`マージ前にfeatureブランチで `workflow_dispatch` すれば、AWS権限なしで本番ビルド（PostCSS/PurgeCSS）の成否を検証できる。
+**`deploy` ジョブ**（`needs: build`、`if: github.ref == 'refs/heads/dev'`、**`environment: dev`**、`permissions: id-token: write`）
 
-### 9.3 Variables（リポジトリ直下 / Settings → Secrets and variables → Actions → Variables）
+7. artifactをダウンロード
+8. OIDCでロール引受（`aws-actions/configure-aws-credentials`、region `ap-northeast-1`）
+9. `aws s3 sync public/ s3://$S3_BUCKET_NAME --delete`
+10. CloudFront Invalidation（`/*`）
+
+- `concurrency: deploy-dev`（`cancel-in-progress: false`。S3 syncの途中打ち切りを避け、後続は待機）。
+- **OIDCの`sub`と`environment:`（2026-10-23訂正）:** 信頼ポリシーはトラックD設計書6.3で`repo:asnomi/ReFactory:environment:dev`完全一致に変更された。`environment:`なしのジョブは`sub`が`...:ref:refs/heads/dev`になりAssumeRoleが拒否される（初回CIの失敗原因）。そのため`deploy`ジョブに`environment: dev`を付けた。`id-token: write`は最小権限としてdeployジョブのみに付与。
+- **ジョブを分離した理由:** `environment: dev`のジョブは、Environmentの「Deployment branches」を`dev`のみに限定するとdev以外のrefでは開始自体が拒否される。buildを別ジョブ（Environmentなし）にしておけば、`dev`マージ前にfeatureブランチで`workflow_dispatch`して本番ビルド（PostCSS/PurgeCSS）の成否だけ確認できる。
+- **Deployment branches設定:** ブランチ限定はIAMではなくEnvironment側で担保する設計（D設計書6.3）。`dev` Environmentは未作成でも`environment: dev`の初回実行で自動作成されるが、その場合は制限なしになるため、**GitHub UI（Settings → Environments → dev → Deployment branches → Selected branches → `dev`）で設定する**（トラックD依頼事項）。
+
+### 9.3 Variables（Settings → Secrets and variables → Actions → Variables）
 
 | 名前 | 値の出所（トラックD `terraform output`） |
 | --- | --- |
@@ -427,7 +436,7 @@ Secretsは全て **リポジトリSecrets**（Environment分離は現時点で�
 | `CLOUDFRONT_DISTRIBUTION_ID` | `distribution_id` |
 | `AWS_DEPLOY_ROLE_ARN` | `deploy_role_arn` |
 
-> トラックD設計書6.1は「`dev` Environment Variables」登録としているが、MVPではEnvironmentを使わないため**リポジトリ直下**に登録する（要トラックD側の認識合わせ）。
+> 現状は**リポジトリ直下**に3値登録済み（2026-10-23確認）。`environment: dev`のジョブはEnvironment変数→リポジトリ変数の順で参照するため、このままで読める。トラックD設計書6.1の「`dev` Environment Variables」へ移す場合も、ワークフロー側の変更は不要（同名の`vars.*`）。
 
 ### 9.4 CIブロッカーの解消内容
 
