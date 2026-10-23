@@ -26,9 +26,10 @@ provider "aws" {
 resource "aws_iam_openid_connect_provider" "github_actions" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  # AWSは現在thumbprintを検証しないが、リソース定義上は必須項目のためGitHub公式値を設定する。
+  # AWSは現在thumbprintを検証しないが、リソース定義上は必須項目のため、
+  # token.actions.githubusercontent.comの実際のTLS証明書チェーン（中間CA）から取得した値を設定する
+  # （2026-08-30、openssl s_clientで実測。GitHubの証明書発行元変更時は再取得が必要）。
   thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea",
-    "1c58a3a8518e8759bd075151268e610e0a1f6ea9",
+    "2d74d6dfd96eea55ad7baafa0d3c6552b2dadc37",
   ]
 }
