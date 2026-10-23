@@ -6,7 +6,9 @@
 
 **対応要件:** F-201, F-202, F-203, NF-101, NF-202
 
-**Document Version:** 0.4（Track A調整事項の内容精査：YAML順序バグ修正＋本番ビルド未検証リスクを追記）
+**Document Version:** 0.5（MVP版ワークフロー追加。9章参照。2.3以降のフル版は後続フェーズ扱い）
+
+> **📌 2026-10-23 方針変更:** 最優先は「Krossモックを `dev.asnomi.com` で見られる状態にする」こと。実装済みの最小ワークフローは [`.github/workflows/deploy-dev.yml`](../.github/workflows/deploy-dev.yml)（**9章**参照）。Notion同期・cron・本番(main)デプロイ・GitHub Environment分離は**後続扱い**で、2〜5章のフル版設計はその際のベースとして残す。
 
 **Date:** 2026-08-24（初版）／2026-08-25改訂（Kross_モック検証メモ.mdの実装事情をT3-1に反映）／2026-08-25再改訂（8章 未確定事項6〜9をTrack A側で確定・反映）／2026-08-25再々改訂（Track A確定事項を実機`asnomi-kross-mock/`と突き合わせて内容精査。YAMLのステップ順序バグを修正し、PostCSS/PurgeCSS本番ビルドが未実証である点をリスクとして明記）
 
@@ -221,8 +223,8 @@ jobs:
 
 詳細な検証根拠は[設計書_トラックA_フロントエンド.md](./設計書_トラックA_フロントエンド.md)を参照。以下、CI設計への反映結果のみ記載する。
 
-- **`package.json`の配置階層 → サイト本体ルート（リポジトリルート、`hugo.toml`と同階層）に確定。** `themes/kross`配下ではない。理由：Kross本体のnpmスクリプト（`dev`/`build`、`:example`サフィックス無し）はカレントディレクトリ＝サイトルートを前提に`hugo`コマンドを実行する設計であり、`postcss.config.js`もサイトルートに置く前提でPostCSSがカレントディレクトリを基準に解決するため。モックでの実機ビルドにより確認済み。
-  → CI側の`npm ci`・`hugo build`ステップは**working-directory指定不要**（リポジトリルートがそのままサイトルートのため、デフォルトのcheckout直下で完結する）。
+- **`package.json`の配置階層 → サイト本体ルート（`hugo.toml`と同階層）に確定。** `themes/kross`配下ではない。**⚠️ 2026-10-23訂正：サイトルートはリポジトリ直下ではなく `asnomi-kross-mock/` 配下。** 下記「working-directory指定不要」は誤りで、CIでは `working-directory: asnomi-kross-mock` の指定が必要（9章参照）。理由：Kross本体のnpmスクリプト（`dev`/`build`、`:example`サフィックス無し）はカレントディレクトリ＝サイトルートを前提に`hugo`コマンドを実行する設計であり、`postcss.config.js`もサイトルートに置く前提でPostCSSがカレントディレクトリを基準に解決するため。モックでの実機ビルドにより確認済み。
+  → ~~CI側の`npm ci`・`hugo build`ステップは**working-directory指定不要**（リポジトリルートがそのままサイトルートのため、デフォルトのcheckout直下で完結する）。~~ **（訂正済み・上記参照）**
 - **`site.Params.purge_css`の最終設定値 → `true`（ON）で確定。** 理由：Kross標準ではCSSがファイルリンクではなく`<style>`タグとして各HTMLページに**インライン埋め込み**される構成のため、未パージのCSS（Bootstrap全量含む）をそのまま出力すると全ページで肥大化した`<style>`ブロックを都度読み込むことになり、NF-102（ページロード高速化）への悪影響がむしろ大きい。CI側はいずれにせよNode.js/PostCSS一式の導入が必要な設計（②）のため、ONにしてもCI追加コストは発生しない。→ **2.3のYAML骨格・2.4②の対応はそのまま維持（変更なし）。**
 - **Hugo Modules依存（`go.mod`記載のGitHubリポジトリ群）→ すべて公開リポジトリであることを確認済み。** `github.com/gohugoio/*`・`github.com/gethugothemes/*`・`github.com/twbs/bootstrap`のみで構成されており、モック環境での`hugo mod tidy`が認証設定無しで正常完了したことから実証済み。→ **`GOPRIVATE`環境変数・SSH鍵/PAT等の追加Git認証設定は不要。** 2.3のYAML骨格に変更なし。
 
@@ -307,6 +309,8 @@ CloudFront Invalidationは**月1,000パスまで無料**（それ以降 $0.005/�
 
 Secretsは全て **リポジトリSecrets**（Environment分離は現時点では不要。単一環境のみのため）とする。将来ステージング環境等を設ける場合はGitHub Environments機能での分離を検討する。
 
+> **2026-10-23 MVP版の扱い（9章）:** `AWS_DEPLOY_ROLE_ARN` / `S3_BUCKET_NAME` / `CLOUDFRONT_DISTRIBUTION_ID` は非機密のため **Secretsではなくリポジトリ直下のVariables（`vars.*`）** から読む（トラックD設計書6.1と同方針）。Notion系Secretsは後続フェーズで追加する。
+
 ---
 
 ## 6. T4-1. インフラ可用性の確認
@@ -376,10 +380,72 @@ Secretsは全て **リポジトリSecrets**（Environment分離は現時点で�
 3. 現行CloudFrontディストリビューションのHTTPS/証明書/DNS設定の実態
 4. 現行サイトの実績アクセス数（コスト試算精度向上のため）
 5. S3バケットのバージョニング有効化の是非（推奨事項として提示、意思決定待ち）
-6. ~~`package.json` の配置階層~~ → ✅ **2026-08-25確定：サイト本体ルート**（2.4③参照）
+6. ~~`package.json` の配置階層~~ → ✅ **2026-08-25確定：サイト本体ルート**（ただしサイトルートは `asnomi-kross-mock/`。2.4③の訂正・9章参照）
 7. `site.Params.purge_css` の最終設定値 → 値自体は ✅ **2026-08-25確定：`true`（ON）**（2.4③参照）だが、**⚠️ この設定を前提とした本番ビルド（PostCSS/PurgeCSS経由）が実機で一度も成功確認されていない**（2.4④参照）。実装着手前に`npm ci`込みの本番ビルドを一度通し、ビルド成功とCSS軽量化の両方を確認するまでは「未解消」として扱う。
 8. ~~Hugo Modules依存（`go.mod`）がすべて公開リポジトリか~~ → ✅ **2026-08-25確認済み：全て公開リポジトリ、追加認証不要**（2.4③参照）
 9. ~~CI用Hugoバージョンの最終固定値~~ → ✅ **2026-08-25確定：`0.152.2`**（Track Aモック検証環境と同一バージョンで確定。2.3のYAML骨格は変更なしでそのまま確定版として扱う）
 10. **（2026-08-25追加）YAMLステップ順序バグの修正確認** → 旧版の「Notion同期がsetup-nodeより前に実行される」バグは2.3節で修正済みだが、実際のCIランでの動作確認はまだ行っていない。項目7の本番ビルド検証と合わせて、初回の実CI実行時に確認する。
 
 上記6・8・9はTrack Aとの連携により解消済み（詳細根拠は[設計書_トラックA_フロントエンド.md](./設計書_トラックA_フロントエンド.md)参照）。項目7は値のみ確定・実証は未了、項目10は設計修正済み・実証は未了。残る1〜5・7・10は実装着手前にヒアリング・現行インフラ棚卸し・実機検証で解消し、本書を確定版へ更新する。
+
+
+---
+
+## 9. MVP版ワークフロー（2026-10-23〜）
+
+**ゴール:** `dev` ブランチへのpushで、`asnomi-kross-mock/` をビルドして `https://dev.asnomi.com/` にデプロイする。実体は [`.github/workflows/deploy-dev.yml`](../.github/workflows/deploy-dev.yml)。
+
+### 9.1 スコープ
+
+| 項目 | MVP版 | 後続（2〜5章のフル版） |
+| --- | --- | --- |
+| トリガー | `push`（`dev`）＋`workflow_dispatch` | ＋`schedule`(cron)、`main`向け本番デプロイ |
+| Notion同期 | なし（コミット済みダミーコンテンツをビルド） | あり（トラックB再開後） |
+| GitHub Environment | **使わない**（`environment:`を付けない） | OIDC信頼ポリシー修正後に検討 |
+| 値の参照元 | リポジトリ直下の Variables（`vars.*`） | Secrets/Environment分離 |
+| 対象環境 | `dev.asnomi.com` のみ | ＋本番 `asnomi.com` |
+
+### 9.2 ステップ（作業ディレクトリは `asnomi-kross-mock/`）
+
+1. checkout（`submodules: true`）
+2. Go（Hugo Modules用）— `setup-go`、`go.sum`でキャッシュ
+3. Node.js 24(LTS) ＋ `npm ci`（本番ビルドのPostCSS/PurgeCSS用）— `package-lock.json`でキャッシュ
+4. Hugo **0.152.2 extended**（`peaceiris/actions-hugo`）
+5. `hugo --gc --minify --baseURL https://dev.asnomi.com/`（`HUGO_ENVIRONMENT=production`）
+6. OIDCでロール引受（`aws-actions/configure-aws-credentials`、region `ap-northeast-1`）
+7. `aws s3 sync public/ s3://$S3_BUCKET_NAME --delete`
+8. CloudFront Invalidation（`/*`）
+
+- `permissions: id-token: write, contents: read`、`concurrency: deploy-dev`（`cancel-in-progress: false`。S3 syncの途中打ち切りを避け、後続は待機）。
+- **`dev` 以外のrefからの手動実行:** 6〜8（AWS関連）を `if: github.ref == 'refs/heads/dev'` でスキップし、ビルド確認のみ行う。OIDC信頼ポリシーが `refs/heads/dev` 固定のため。`dev`マージ前にfeatureブランチで `workflow_dispatch` すれば、AWS権限なしで本番ビルド（PostCSS/PurgeCSS）の成否を検証できる。
+
+### 9.3 Variables（リポジトリ直下 / Settings → Secrets and variables → Actions → Variables）
+
+| 名前 | 値の出所（トラックD `terraform output`） |
+| --- | --- |
+| `S3_BUCKET_NAME` | `bucket_name` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | `distribution_id` |
+| `AWS_DEPLOY_ROLE_ARN` | `deploy_role_arn` |
+
+> トラックD設計書6.1は「`dev` Environment Variables」登録としているが、MVPではEnvironmentを使わないため**リポジトリ直下**に登録する（要トラックD側の認識合わせ）。
+
+### 9.4 CIブロッカーの解消内容
+
+| # | ブロッカー | 対応 |
+| --- | --- | --- |
+| 1 | `themes/kross/` がgit管理外（ネストしたgitリポジトリ） | **git submodule化**（`.gitmodules`、`b73d76f`に固定）。`.gitignore`の`**/themes/kross/`を削除。ネスト側の作業ツリーに変更が無い（テーマ無改修）ことを確認済み。カスタマイズはプロジェクト側`layouts/`・`assets/`で実施 |
+| 2 | `content/` がgit管理外 | `.gitignore`の`content/`除外を外し、モック用ダミーコンテンツ（`works/`6件・`news/`3件・`about`・`contact`・`_index`）をコミット。Notion同期導入時に再検討 |
+| 3 | `package-lock.json` 未コミット | ローカルで`npm install`して生成・コミット済み（Node.js 24.22.1 / npm 11.19.1） |
+| 4 | サイトルートが`asnomi-kross-mock/` | `defaults.run.working-directory` と各`cache-dependency-path`で指定。トラックA設計書7.1の「リポジトリ直下で実行」は誤り（2.4③を訂正済み。トラックA側の設計書訂正は別途依頼） |
+
+### 9.5 確認方法
+
+- `dev`へのマージ後に自動実行され成功すること（初回は`workflow_dispatch`でも可）
+- `https://dev.asnomi.com/` が表示されること
+- `/works/`・`/news/` はトラックDのCloudFront Function（サブディレクトリindex解決）反映後に確認
+
+### 9.6 既知のリスク・未検証事項
+
+- **ローカルでの本番ビルド検証結果（2026-10-23）:** `npm ci` → `HUGO_ENVIRONMENT=production hugo --gc --minify --baseURL https://dev.asnomi.com/` が成功（31ページ、`/works/`・`/news/`・各詳細ページ出力、リンクが`https://dev.asnomi.com/`基準）。8章項目7で未実証だった「PostCSS経由の本番ビルドが通ること」は**ローカルでは解消**。CI上での実行は未確認。
+- **PurgeCSSによるCSS軽量化は未確認（要フォロー）:** インライン`<style>`は本番259KB（PostProcess後でHugoのminifyが効かず未圧縮）／development212KB（minify済み）で、本番の方が大きい。未使用Bootstrapセレクタの除去効果は確認できていない。MVP表示には影響しないため後回しとし、NF-102（高速表示）対応時にTrack Aと調整する。
+- GitHub Actionsの各アクションはメジャータグ指定（`@v4`等）。固定が必要になれば後続でSHAピンへ。
