@@ -14,15 +14,15 @@
 | --- | --- |
 | A（フロント/Kross） | モック完成・`dev`マージ済み（content出力パスをBの設計に統一）。次は本実装フェーズ待ち |
 | B（Notion連携） | ⏸ 一時停止（MVP優先のため）。DB定義はKross要件に合わせてユーザーが再検討中 |
-| C（CI/CD） | 🎯 最優先。dev向け最小デプロイワークフローを実装（依頼済み 2026-10-23） |
-| D（インフラ/Terraform） | 🎯 最優先。dev環境apply済み。CloudFront Function（サブディレクトリindex）のみ対応（依頼済み 2026-10-23）。OIDCのEnvironment対応は後回し |
+| C（CI/CD） | ✅ MVP完了（2026-10-23）。`dev`へのpushで`asnomi-kross-mock/`をビルド→S3 sync→Invalidationし、`dev.asnomi.com`へのデプロイ成功（PR #6, #7。`deploy-dev.yml`）。残: `/works/`・`/news/`表示確認（D側CloudFront Function反映後）、`main`向け分岐・cron・Notion同期は後続 |
+| D（インフラ/Terraform） | 🎯 最優先。dev環境apply済み。CloudFront Function（サブディレクトリindex）のみ対応（依頼済み 2026-10-23）。OIDCはEnvironment形式（数値ID付き）で修正・適用済み（2026-10-23） |
 
 **🎯 方針変更（2026-10-23）: MVP最優先 ＝「Krossモックを `dev.asnomi.com` にデプロイして見られる状態にする」**
 - Notion連携（トラックB）はこのゴールに不要のため一時停止。DB定義はKrossの要件（作品: title/date/image/categories(=種別)/description/本文、ニュース: title/date/image/description/本文、ヒーロー: params.banner）に合わせてユーザーが再検討する。下記Phase 1の新DB関連の記述はDB定義確定後に書き直す。
 - Krossソースの改修済み箇所は現状のまま維持する。
-- **クリティカルパス:** トラックD（CloudFront Functionでサブディレクトリindex解決）＋ トラックC（`dev`へのpushで ビルド→S3 sync→Invalidation する最小ワークフロー。Notion同期・cron・Environmentは使わない）→ `dev.asnomi.com` で確認。
-- OIDC信頼ポリシーの修正（Environment対応）は、MVPではリポジトリ直下のVariablesを使うことで回避し、後回しにする。
-- CIビルドのブロッカー（トラックCで解消）: `themes/kross/` と `content/` がgit管理外、`package-lock.json` 未コミット、サイトルートが `asnomi-kross-mock/` 配下。
+- **クリティカルパス:** トラックD（CloudFront Functionでサブディレクトリindex解決）＋ トラックC（`dev`へのpushで ビルド→S3 sync→Invalidation する最小ワークフロー。Notion同期・cronは使わない）→ `dev.asnomi.com` で確認。
+- ~~OIDC信頼ポリシーの修正は後回し~~ → 当初方針を撤回。トラックDが信頼ポリシーをEnvironment形式（数値ID付き）に修正・適用し、deployジョブに`environment: dev`を付けて解消（経緯: 設計書トラックD 6.3・6.5節）。値（Variables）はリポジトリ直下のまま利用。
+- CIビルドのブロッカー（✅ トラックCで解消済み・PR #6）: `themes/kross/` と `content/` がgit管理外、`package-lock.json` 未コミット、サイトルートが `asnomi-kross-mock/` 配下。
 
 ---
 
@@ -138,11 +138,16 @@
 - **トラックC（CI/CD）**: GitHub Actionsワークフロー設計・実装。「インフラは既に存在する」前提で、トラックDが払い出すリソース識別子（バケット名・ディストリビューションID・IAM Role ARN）を使う側。
 - **トラックD（インフラ/Terraform）**: AWSリソースの実体構築（Terraform）、非機能要件設計（可用性まわり）を担当。トラックCへリソース識別子を払い出す側。
 
-- [ ] **T3-1. GitHub Actionsワークフロー設計** 🔴 **要修正**（レビュー指摘、下記参照）
-  - [x] cronトリガー（`schedule`）の具体的な実行頻度を決定する（T0-1決定を受けて）→ 6時間おきで確定
+- [x] **T3-1. GitHub Actionsワークフロー設計** ✅ **MVP版を実装・dev.asnomi.comへのデプロイ成功（2026-10-23）**。Notion同期・cron・`main`デプロイはMVP外で後続
+  - [x] cronトリガー（`schedule`）の具体的な実行頻度を決定する（T0-1決定を受けて）→ 6時間おきで確定（導入はNotion同期と同時に後続）
   - [x] Notionデータ同期スクリプト実行ステップの設計（骨格）
   - [x] `hugo` ビルドコマンド実行ステップの設計（骨格）
-  - [ ] **要修正**: [Kross_モック検証メモ.md](document/Kross_モック検証メモ.md)で判明した「Kross導入はHugo Modules方式（git submoduleではない、Go 1.19+要）」「本番ビルドにはNode.js + postcss-cli + @fullhuman/postcss-purgecssが別途必要」の2点がYAML草案に未反映。トラックCセッションで修正が必要。
+  - [x] Kross実装事情（Hugo Modules・本番ビルドのNode.js/PostCSS）の反映 → MVP版ワークフローに反映済み。ローカル・CI双方で本番ビルド成功を確認
+  - [x] **MVP版ワークフロー実装**（PR #6, #7）: [`.github/workflows/deploy-dev.yml`](.github/workflows/deploy-dev.yml)。`dev`へのpush＋`workflow_dispatch`で、build（Go/Node24+`npm ci`/Hugo 0.152.2 extended）→ deploy（`environment: dev`、OIDC、`s3 sync --delete`、Invalidation `/*`）。詳細は[設計書トラックC 9章](document/設計書_トラックC_インフラCICD.md)
+  - [x] CIブロッカー解消: `themes/kross`をgit submodule化（`b73d76f`固定・テーマ無改修）／`content/`のダミーコンテンツをコミット／`package-lock.json`コミット／`working-directory: asnomi-kross-mock`
+  - [ ] `/works/`・`/news/` の表示確認（トラックDのCloudFront Function反映後）
+  - [ ] 🟡 PurgeCSS後の本番CSSが未圧縮で259KB（development 212KB）。軽量化効果は未確認。MVP表示への影響なし、NF-102対応時にトラックAと調整
+  - [ ] 🟡 リポジトリルートに`workflow_dispatch.yaml`（PR #9 `deploytest`で追加された「test deploy」）が残存。`.github/workflows/`外のため動作しないが、不要なら削除（所有者確認）
   - 関連要件: F-201
 
 - [x] **T3-2. S3同期処理設計** → 設計書3章参照（現行バケットの実態確認は未確認事項として残存）🟡 **要改訂**（下記T3-4対応に伴い、単一バケット前提の設計を環境別バケット対応に更新要）
@@ -169,8 +174,9 @@
     - [ ] 🔴 **CloudFrontのサブディレクトリindex対応**: OAC+S3（REST）構成のため `/portfolio/` 等が `index.html` に解決されず404になる。CloudFront Function（viewer-request）で `/` 終端URIを `index.html` に書き換える対応が必要（2026-10-23レビュー指摘）
     - [ ] 本番環境（`asnomi.com`）のTerraform化（`envs/prod/`追加）— 時期未定
   - **【トラックC担当】ワークフロー側の対応（トラックDの払い出し完了済み。上記🔴の修正見込みを踏まえて着手可）:**
-    - [ ] GitHub Actionsワークフロー（T3-1）に、pushされたブランチ（`main`/`dev`）に応じてデプロイ先（S3バケット名・CloudFrontディストリビューションID）を切り替える分岐ロジックを追加
-    - [ ] Secrets/Variables構成の見直し（環境ごとに異なる値を持つため、GitHub Environments機能での分離を検討 — 設計書5.2節は単一環境前提だったため要更新）
+    - [x] `dev`向けデプロイ（`deploy-dev.yml`）を実装済み。`environment: dev`＋OIDCでAssumeRoleが成功（PR #7、トラックDのsub修正後）
+    - [ ] GitHub Actionsワークフロー（T3-1）に、pushされたブランチ（`main`/`dev`）に応じてデプロイ先（S3バケット名・CloudFrontディストリビューションID）を切り替える分岐ロジックを追加 — `main`/本番はprod環境のTerraform化（トラックD）後に着手
+    - [ ] Secrets/Variables構成の見直し — dev分は現状リポジトリ直下のVariables（`S3_BUCKET_NAME`/`CLOUDFRONT_DISTRIBUTION_ID`/`AWS_DEPLOY_ROLE_ARN`）で運用中。prod追加時にGitHub Environments（`dev`/`prod`）単位の変数へ分離（設計書5.2節は単一環境前提のため、その時点で更新）
   - [ ] NF-202コスト試算（T4-4）への影響を反映（dev環境分のS3・CloudFront費用を追加試算）→ トラックD
   - 関連要件: F-204
 
@@ -232,7 +238,7 @@
 対象: task.md, Kross_モック検証メモ.md, 設計書_Notionデータ連携.md, 設計書_トラックC_インフラCICD.md
 
 ### 🔴 要修正（ブロッカー）
-- **トラックC⇄トラックA不整合**: Krossの導入方式（Hugo Modules、git submoduleではない）と本番ビルドに必要なNode.js/PostCSS関連パッケージが、[設計書_トラックC_インフラCICD.md](document/設計書_トラックC_インフラCICD.md)のGitHub Actionsワークフロー草案（T3-1）に未反映。このままではCI上のビルドが失敗する可能性が高い。トラックCセッションへ[Kross_モック検証メモ.md](document/Kross_モック検証メモ.md)のT2-1節を共有し、ワークフロー草案の修正を依頼すること。
+- **トラックC⇄トラックA不整合（✅ 2026-10-23解消: MVP版ワークフローに反映、設計書トラックC 9章）**: Krossの導入方式（Hugo Modules、git submoduleではない）と本番ビルドに必要なNode.js/PostCSS関連パッケージが、[設計書_トラックC_インフラCICD.md](document/設計書_トラックC_インフラCICD.md)のGitHub Actionsワークフロー草案（T3-1）に未反映。このままではCI上のビルドが失敗する可能性が高い。トラックCセッションへ[Kross_モック検証メモ.md](document/Kross_モック検証メモ.md)のT2-1節を共有し、ワークフロー草案の修正を依頼すること。
 
 ### 🟡 要ユーザー判断 → ✅ 解決済み（2026-08-25）
 1. **F-303「年」によるソート/分類**: 見送り（実装しない）ではなく**申し送り事項としてバックログ化**を決定。「まずは動くものを作る」を優先。詳細は「今後の申し送り事項（バックログ）」参照。
