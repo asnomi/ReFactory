@@ -30,14 +30,14 @@ variable "enable_versioning" {
   default     = true
 }
 
-variable "github_repo" {
-  description = "GitHub Actionsからのデプロイを許可するリポジトリ（\"owner/repo\"形式）"
-  type        = string
-}
+variable "github_oidc_subjects" {
+  description = "ロールの引き受けを許可するOIDCトークンのsub（完全一致）。例: repo:<owner>@<owner_id>/<repo>@<repo_id>:ref:refs/heads/dev"
+  type        = list(string)
 
-variable "github_environment" {
-  description = "OIDC信頼ポリシーで許可するGitHub Environment名（例: dev, prod）。ジョブに`environment: <この値>`を指定したワークフロー実行のみがロールを引き受けられる"
-  type        = string
+  validation {
+    condition     = length(var.github_oidc_subjects) > 0 && alltrue([for s in var.github_oidc_subjects : startswith(s, "repo:") && !strcontains(s, "*")])
+    error_message = "subは1件以上、repo:で始まり、ワイルドカード(*)を含まない完全な値で指定すること。"
+  }
 }
 
 variable "oidc_provider_arn" {

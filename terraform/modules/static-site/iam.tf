@@ -1,8 +1,7 @@
 # GitHub ActionsがOIDCで一時的に引き受けるデプロイ用ロール。
-# 信頼ポリシーはリポジトリ・GitHub Environment単位で完全一致に絞り込む。
-# ジョブに`environment:`を指定した場合、OIDCトークンのsubは`repo:<repo>:environment:<env>`形式になり、
-# ref形式（`...:ref:refs/heads/...`）にはならない。ブランチの限定はIAMではなく、
-# GitHub側のEnvironment「Deployment branches」設定で行う（設計書トラックD 6.3節参照）。
+# 信頼ポリシーはOIDCトークンのsubを完全一致（StringEquals、ワイルドカードなし）で絞り込む。
+# subの形はGitHub側の発行形式とワークフローの書き方で変わるため、許可する値は呼び出し側で完全な文字列として渡す
+# （設計書トラックD 6.4節参照）。
 data "aws_iam_policy_document" "github_actions_assume_role" {
   statement {
     effect  = "Allow"
@@ -22,7 +21,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:environment:${var.github_environment}"]
+      values   = var.github_oidc_subjects
     }
   }
 }
