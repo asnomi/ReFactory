@@ -3,8 +3,8 @@ title: "プロフィール"
 description: "孤独を美しい静寂に書き換えるアトリエ「asnomi studio」のプロフィール。"
 draft: false
 layout: "about"
-# プロフィール画像を表示する場合は、assets/ 配下の画像パスを指定する（例: author_image: "images/profile/icon.jpg"）。未指定なら画像なしで表示される。
-# author_image: ""
+# プロフィール画像: assets/ 配下の画像パス。未指定なら画像なしで表示される
+author_image: "images/profile/icon.jpg"
 ---
 
 **孤独を美しい静寂に書き換えるアトリエ「asnomi studio」。**
