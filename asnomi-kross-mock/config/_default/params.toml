@@ -11,6 +11,11 @@ logo_webp = true
 # logo text will only show when logo is missing.
 logo_text = "asnomi studio"
 
+# 検索エンジンへのインデックスを許可するホスト名（baseURLのホスト部分）。
+# ここに無いホスト（dev.asnomi.com / localhost 等）のビルドは noindex + robots.txt全拒否になる。
+# 本番公開時のbaseURLを変える場合は、ここも合わせて更新すること。
+indexableHosts = ["asnomi.com", "www.asnomi.com"]
+
 # purgeCSS
 purge_css = true
 
