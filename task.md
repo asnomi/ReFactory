@@ -13,11 +13,16 @@
 | トラック | 状況 |
 | --- | --- |
 | A（フロント/Kross） | モック完成・`dev`マージ済み（content出力パスをBの設計に統一）。次は本実装フェーズ待ち |
-| B（Notion連携） | 設計完了。実装は未着手（ブランチに差分コミット無し）。T1-3の詳細仕様が未確定 |
-| C（CI/CD） | 設計は一通り完了だが T3-1 が 🔴 未修正。実装は未着手 |
-| D（インフラ/Terraform） | dev環境（`dev.asnomi.com`）をapply済み。修正ブランチはレビュー済み（マージ可）。OIDC信頼ポリシーとCloudFront index対応が要修正 |
+| B（Notion連携） | ⏸ 一時停止（MVP優先のため）。DB定義はKross要件に合わせてユーザーが再検討中 |
+| C（CI/CD） | 🎯 最優先。dev向け最小デプロイワークフローを実装（依頼済み 2026-10-23） |
+| D（インフラ/Terraform） | 🎯 最優先。dev環境apply済み。CloudFront Function（サブディレクトリindex）のみ対応（依頼済み 2026-10-23）。OIDCのEnvironment対応は後回し |
 
-**クリティカルパス:** トラックDの🔴2件の修正 → GitHub `dev` Environment Variables登録 → トラックCのワークフロー実装（T3-1修正・T3-4分岐）→ `dev.asnomi.com`でモックを確認。トラックBの同期スクリプトはこれと並行して進められる。
+**🎯 方針変更（2026-10-23）: MVP最優先 ＝「Krossモックを `dev.asnomi.com` にデプロイして見られる状態にする」**
+- Notion連携（トラックB）はこのゴールに不要のため一時停止。DB定義はKrossの要件（作品: title/date/image/categories(=種別)/description/本文、ニュース: title/date/image/description/本文、ヒーロー: params.banner）に合わせてユーザーが再検討する。下記Phase 1の新DB関連の記述はDB定義確定後に書き直す。
+- Krossソースの改修済み箇所は現状のまま維持する。
+- **クリティカルパス:** トラックD（CloudFront Functionでサブディレクトリindex解決）＋ トラックC（`dev`へのpushで ビルド→S3 sync→Invalidation する最小ワークフロー。Notion同期・cron・Environmentは使わない）→ `dev.asnomi.com` で確認。
+- OIDC信頼ポリシーの修正（Environment対応）は、MVPではリポジトリ直下のVariablesを使うことで回避し、後回しにする。
+- CIビルドのブロッカー（トラックCで解消）: `themes/kross/` と `content/` がgit管理外、`package-lock.json` 未コミット、サイトルートが `asnomi-kross-mock/` 配下。
 
 ---
 
