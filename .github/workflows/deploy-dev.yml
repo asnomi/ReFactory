@@ -1,9 +1,9 @@
 # MVP版: dev ブランチの asnomi-kross-mock/ をビルドして dev.asnomi.com へデプロイする。
-# スコープ外（後続対応）: Notion同期 / cron / main(本番)デプロイ / GitHub Environment分離
+# スコープ外（後続対応）: Notion同期 / cron / main(本番)デプロイ
 #
-# 注意: GitHub Environment は使わない（environment: を付けない）。
-#   OIDC信頼ポリシーが repo:asnomi/ReFactory:ref:refs/heads/dev 固定のため、
-#   Environmentを付けるとsubが変わりAssumeRoleに失敗する。値はリポジトリ直下のVariables(vars.*)から読む。
+# deployジョブは `environment: dev` を付ける。OIDC信頼ポリシーが
+# repo:asnomi/ReFactory:environment:dev 完全一致のため（トラックD設計書6.3）。
+# buildジョブはEnvironmentを使わず、dev以外のrefからの手動実行でもビルド確認ができる。
 name: deploy-dev
 
 on:
@@ -12,7 +12,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
 concurrency:
@@ -25,7 +24,7 @@ env:
   SITE_URL: https://dev.asnomi.com/
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -56,18 +55,38 @@ jobs:
       - name: Hugo build
         run: hugo --gc --minify --baseURL ${{ env.SITE_URL }}
 
-      # OIDCの信頼ポリシーは refs/heads/dev 固定のため、dev以外のrefからの手動実行はビルド確認のみで終える
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: asnomi-kross-mock/public/
+          include-hidden-files: true # .htaccess / .well-known を含める
+          if-no-files-found: error
+          retention-days: 3
+
+  deploy:
+    needs: build
+    # OIDCの信頼はEnvironment dev（Deployment branchesはdevのみ）に限定。dev以外のrefではデプロイしない
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: public/
+
       - name: Configure AWS credentials (OIDC)
-        if: github.ref == 'refs/heads/dev'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ap-northeast-1
 
       - name: Sync to S3
-        if: github.ref == 'refs/heads/dev'
         run: aws s3 sync public/ "s3://${{ vars.S3_BUCKET_NAME }}" --delete
 
       - name: Invalidate CloudFront
-        if: github.ref == 'refs/heads/dev'
         run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/*"
