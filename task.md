@@ -14,14 +14,16 @@
 | --- | --- |
 | A（フロント/Kross） | モック完成・`dev`マージ済み（content出力パスをBの設計に統一）。次は本実装フェーズ待ち |
 | B（Notion連携） | ⏸ 一時停止（MVP優先のため）。DB定義はKross要件に合わせてユーザーが再検討中 |
-| C（CI/CD） | ✅ MVP完了（2026-10-23）。`dev`へのpushで`asnomi-kross-mock/`をビルド→S3 sync→Invalidationし、`dev.asnomi.com`へのデプロイ成功（PR #6, #7。`deploy-dev.yml`）。残: `/works/`・`/news/`表示確認（D側CloudFront Function反映後）、`main`向け分岐・cron・Notion同期は後続 |
-| D（インフラ/Terraform） | 🎯 最優先。dev環境apply済み。CloudFront Function（サブディレクトリindex）のみ対応（依頼済み 2026-10-23）。OIDCはEnvironment形式（数値ID付き）で修正・適用済み（2026-10-23） |
+| C（CI/CD） | ✅ MVP完了（2026-10-23）。`dev`へのpushで`asnomi-kross-mock/`をビルド→S3 sync→Invalidationし、`dev.asnomi.com`へのデプロイ成功（PR #6, #7。`deploy-dev.yml`）。`main`向け分岐・cron・Notion同期は後続 |
+| D（インフラ/Terraform） | ✅ dev環境のMVP対応完了（CloudFront Functionでサブディレクトリindex解決、OIDC信頼ポリシーを実トークン形式に修正・apply済み 2026-10-23）。次は本番Terraform化等（時期未定） |
 
 **🎯 方針変更（2026-10-23）: MVP最優先 ＝「Krossモックを `dev.asnomi.com` にデプロイして見られる状態にする」**
 - Notion連携（トラックB）はこのゴールに不要のため一時停止。DB定義はKrossの要件（作品: title/date/image/categories(=種別)/description/本文、ニュース: title/date/image/description/本文、ヒーロー: params.banner）に合わせてユーザーが再検討する。下記Phase 1の新DB関連の記述はDB定義確定後に書き直す。
 - Krossソースの改修済み箇所は現状のまま維持する。
 - **クリティカルパス:** トラックD（CloudFront Functionでサブディレクトリindex解決）＋ トラックC（`dev`へのpushで ビルド→S3 sync→Invalidation する最小ワークフロー。Notion同期・cronは使わない）→ `dev.asnomi.com` で確認。
-- ~~OIDC信頼ポリシーの修正は後回し~~ → 当初方針を撤回。トラックDが信頼ポリシーをEnvironment形式（数値ID付き）に修正・適用し、deployジョブに`environment: dev`を付けて解消（経緯: 設計書トラックD 6.3・6.5節）。値（Variables）はリポジトリ直下のまま利用。
+- ~~OIDC信頼ポリシーの修正は後回し~~ → 当初方針を撤回し、**対応済み（2026-10-23）**。初回デプロイでAssumeRoleが失敗し、GitHubの`sub`が数値ID付き形式（`repo:asnomi@81574932/ReFactory@1346288783:…`）だったことが原因と判明。deployジョブは`environment: dev`を使い、信頼ポリシーは`repo:asnomi@81574932/ReFactory@1346288783:environment:dev`の完全一致に修正（設計書トラックD 6.3・6.5節）。値（Variables）はリポジトリ直下のまま利用。
+- **✅ MVPゴール達成（2026-10-23）**：`dev.asnomi.com` でKrossモックのトップ・`/works/`・`/news/` が200で表示されることを確認。
+- 🟡 **残課題（トラックA/C）：ビルド成果物に`404.html`が無い**ため、存在しないURIが404ページではなく403になる。CloudFront側は`/404.html`を返す設定済みなので、Hugo側で`404.html`を出力すれば解消する。
 - CIビルドのブロッカー（✅ トラックCで解消済み・PR #6）: `themes/kross/` と `content/` がgit管理外、`package-lock.json` 未コミット、サイトルートが `asnomi-kross-mock/` 配下。
 
 ---
@@ -145,7 +147,7 @@
   - [x] Kross実装事情（Hugo Modules・本番ビルドのNode.js/PostCSS）の反映 → MVP版ワークフローに反映済み。ローカル・CI双方で本番ビルド成功を確認
   - [x] **MVP版ワークフロー実装**（PR #6, #7）: [`.github/workflows/deploy-dev.yml`](.github/workflows/deploy-dev.yml)。`dev`へのpush＋`workflow_dispatch`で、build（Go/Node24+`npm ci`/Hugo 0.152.2 extended）→ deploy（`environment: dev`、OIDC、`s3 sync --delete`、Invalidation `/*`）。詳細は[設計書トラックC 9章](document/設計書_トラックC_インフラCICD.md)
   - [x] CIブロッカー解消: `themes/kross`をgit submodule化（`b73d76f`固定・テーマ無改修）／`content/`のダミーコンテンツをコミット／`package-lock.json`コミット／`working-directory: asnomi-kross-mock`
-  - [ ] `/works/`・`/news/` の表示確認（トラックDのCloudFront Function反映後）
+  - [x] `/works/`・`/news/` の表示確認 → 200で表示（トラックDのCloudFront Function反映後に確認、2026-10-23）
   - [ ] 🟡 PurgeCSS後の本番CSSが未圧縮で259KB（development 212KB）。軽量化効果は未確認。MVP表示への影響なし、NF-102対応時にトラックAと調整
   - [ ] 🟡 リポジトリルートに`workflow_dispatch.yaml`（PR #9 `deploytest`で追加された「test deploy」）が残存。`.github/workflows/`外のため動作しないが、不要なら削除（所有者確認）
   - 関連要件: F-201
@@ -169,15 +171,15 @@
     - [x] ACM証明書の発行（us-east-1、DNS検証）
     - [x] OIDC用IAM Role（GitHub Actionsが引き受ける）のTerraform化・作成
     - [x] S3バケット名・CloudFrontディストリビューションID・IAM Role ARNの払い出し（設計書トラックD 6.1節）
-    - [ ] 🟡 **GitHub `dev` Environment Variables への登録が未実施**（`gh` CLI未導入のためUIから手動登録が必要）
-    - [ ] 🔴 **OIDC信頼ポリシーの修正**: 現状 `sub` が `ref:refs/heads/dev` 固定。トラックCが GitHub Environment（`environment: dev`）を使うと `sub` が `environment:dev` 形式に変わり AssumeRole が失敗する（2026-10-23レビュー指摘）
-    - [ ] 🔴 **CloudFrontのサブディレクトリindex対応**: OAC+S3（REST）構成のため `/portfolio/` 等が `index.html` に解決されず404になる。CloudFront Function（viewer-request）で `/` 終端URIを `index.html` に書き換える対応が必要（2026-10-23レビュー指摘）
+    - [x] ~~GitHub `dev` Environment Variables への登録~~ → 値はリポジトリ直下のVariables（`vars.*`）で管理する形に変更（トラックC実装）。GitHubの`dev` Environmentは作成済みで、Deployment branchesを`dev`のみに設定済み（2026-10-23、ユーザー実施）
+    - [x] **OIDC信頼ポリシーの修正**（2026-10-23 apply済み）: `sub`を`repo:asnomi@81574932/ReFactory@1346288783:environment:dev`の完全一致（StringEquals）に変更。GitHubが`sub`を数値ID付きで発行していたことがCloudTrailで判明したため、それに合わせた。ブランチ限定はEnvironmentのDeployment branchesで担保（設計書トラックD 6.3・6.5節）
+    - [x] **CloudFrontのサブディレクトリindex対応**（2026-10-23 apply済み）: viewer-requestのCloudFront Function（`cloudfront-js-2.0`）で`/works/`・`/works`等を`index.html`に解決。テスト用オブジェクトで200/404を確認後に削除（設計書トラックD 6.4節）
     - [ ] 本番環境（`asnomi.com`）のTerraform化（`envs/prod/`追加）— 時期未定
   - **【トラックC担当】ワークフロー側の対応（トラックDの払い出し完了済み。上記🔴の修正見込みを踏まえて着手可）:**
     - [x] `dev`向けデプロイ（`deploy-dev.yml`）を実装済み。`environment: dev`＋OIDCでAssumeRoleが成功（PR #7、トラックDのsub修正後）
     - [ ] GitHub Actionsワークフロー（T3-1）に、pushされたブランチ（`main`/`dev`）に応じてデプロイ先（S3バケット名・CloudFrontディストリビューションID）を切り替える分岐ロジックを追加 — `main`/本番はprod環境のTerraform化（トラックD）後に着手
     - [ ] Secrets/Variables構成の見直し — dev分は現状リポジトリ直下のVariables（`S3_BUCKET_NAME`/`CLOUDFRONT_DISTRIBUTION_ID`/`AWS_DEPLOY_ROLE_ARN`）で運用中。prod追加時にGitHub Environments（`dev`/`prod`）単位の変数へ分離（設計書5.2節は単一環境前提のため、その時点で更新）
-  - [ ] NF-202コスト試算（T4-4）への影響を反映（dev環境分のS3・CloudFront費用を追加試算）→ トラックD
+  - [x] NF-202コスト試算（T4-4）への影響を反映（dev環境分のS3・CloudFront費用を追加試算）→ トラックD：増分は月額$1未満（設計書トラックD 7章。CloudFront Functionsも無料枠内）
   - 関連要件: F-204
 
 ---
@@ -187,7 +189,7 @@
 ### 可用性・パフォーマンス（Block 4）
 
 - [ ] **T4-1. インフラ可用性の確認** 🟡 チェックリスト化完了、現行設定の実地確認は未実施　**【トラックD担当】**
-  - [ ] S3 + CloudFront構成の現行踏襲・設定確認 → 設計書6章に確認項目リスト化済み。**dev環境はapply後の実機確認でDNS解決・HTTPS・OAC経由の非公開アクセス（未デプロイ時403）を確認済み**。本番（`asnomi.com`）側の現行設定確認は未実施。
+  - [ ] S3 + CloudFront構成の現行踏襲・設定確認 → 設計書6章に確認項目リスト化済み。**dev環境はapply後の実機確認でDNS解決・HTTPS・OAC経由の非公開アクセス（未デプロイ時403）を確認済み。2026-10-23のデプロイ後、トップ・サブディレクトリの表示（200）も確認済み**。本番（`asnomi.com`）側の現行設定確認は未実施。
   - 関連要件: NF-101
 
 - [ ] **T4-2. 画像処理・高速表示対応** 【トラックA/B担当・変更なし】
