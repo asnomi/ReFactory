@@ -22,8 +22,8 @@ variable "hosted_zone_id" {
   default     = "Z13MX47JV7ZFKX"
 }
 
-variable "github_repo" {
-  description = "GitHub Actionsからのデプロイを許可するリポジトリ"
+variable "github_repo_subject" {
+  description = "OIDCトークンのsubに現れるリポジトリ表記。GitHubはオーナー名・リポジトリ名に数値IDを付けた形式（<owner>@<owner_id>/<repo>@<repo_id>）で発行するため、その形で指定する（asnomi/ReFactory。IDは2026-10-23にCloudTrailの実トークンで確認）"
   type        = string
-  default     = "asnomi/ReFactory"
+  default     = "asnomi@81574932/ReFactory@1346288783"
 }

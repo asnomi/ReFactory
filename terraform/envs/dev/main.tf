@@ -45,13 +45,15 @@ module "dev_site" {
     aws.us_east_1 = aws.us_east_1
   }
 
-  environment        = "dev"
-  domain_name        = var.domain_name
-  bucket_name        = var.bucket_name
-  hosted_zone_id     = var.hosted_zone_id
-  price_class        = "PriceClass_100"
-  enable_versioning  = true
-  github_repo        = var.github_repo
-  github_environment = "dev"
-  oidc_provider_arn  = data.terraform_remote_state.global_oidc.outputs.oidc_provider_arn
+  environment       = "dev"
+  domain_name       = var.domain_name
+  bucket_name       = var.bucket_name
+  hosted_zone_id    = var.hosted_zone_id
+  price_class       = "PriceClass_100"
+  enable_versioning = true
+  oidc_provider_arn = data.terraform_remote_state.global_oidc.outputs.oidc_provider_arn
+
+  # トラックCのワークフロー（.github/workflows/deploy-dev.yml）はdeployジョブに`environment: dev`を付けるため、
+  # subはEnvironment形式になる。ブランチの限定はGitHubのdev Environmentの「Deployment branches = devのみ」で担保する。
+  github_oidc_subjects = ["repo:${var.github_repo_subject}:environment:dev"]
 }
