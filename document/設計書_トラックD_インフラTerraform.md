@@ -6,9 +6,9 @@
 
 **対応要件:** F-204, NF-101, NF-202
 
-**Document Version:** 0.2（apply実行・実機構築完了を反映）
+**Document Version:** 0.3（OIDC信頼ポリシーのEnvironment形式化・CloudFront index解決を追記）
 
-**Date:** 2026-08-30（初版）／2026-08-30改訂（terraform apply実行完了、実機構築結果を反映）
+**Date:** 2026-08-30（初版）／2026-08-30改訂（terraform apply実行完了、実機構築結果を反映）／2026-10-23改訂（6.3〜6.4節追加）
 
 ---
 
@@ -61,7 +61,7 @@ flowchart LR
 
 **設計の骨子:**
 - S3バケットは完全非公開（Block Public Access全ON）。CloudFrontの **Origin Access Control (OAC)** 経由のみアクセス許可。
-- GitHub ActionsのAWS認証は**OIDC（長期アクセスキー不使用）**。リポジトリ・ブランチ（`refs/heads/dev`）を信頼ポリシーで限定し、キー漏洩リスクそのものを排除する。
+- GitHub ActionsのAWS認証は**OIDC（長期アクセスキー不使用）**。リポジトリ・GitHub Environment（`environment:dev`）を信頼ポリシーで完全一致に限定し（ブランチの限定はGitHub側のEnvironment設定、6.3節参照）、キー漏洩リスクそのものを排除する。
 - IAMロールの権限は対象S3バケット・対象CloudFrontディストリビューションのみに限定した最小権限。
 - 本番（`asnomi.com`）・検証（`dev.asnomi.com`）は完全に別リソース（別S3バケット・別CloudFrontディストリビューション）とし、設定ミスの影響が本番に波及しない構成とする。
 
@@ -118,7 +118,7 @@ terraform/
 | 項目 | 対応 |
 | --- | --- |
 | AWS認証情報の長期保存 | **一切行わない。** GitHub ActionsはOIDCで一時クレデンシャルを都度取得する（`AWS_ACCESS_KEY_ID`等のSecretsは不要） |
-| IAMロールの信頼範囲 | `sub`クレームで`repo:asnomi/ReFactory:ref:refs/heads/dev`に限定。他ブランチ・フォークからは引き受け不可 |
+| IAMロールの信頼範囲 | `sub`クレームを`StringEquals`で`repo:asnomi/ReFactory:environment:dev`に完全一致限定（ワイルドカード不使用）。`aud`は`sts.amazonaws.com`。ブランチ制限はGitHub Environment側（6.3節）。※初版の`ref:refs/heads/dev`形式は6.3節の理由で廃止 |
 | IAMロールの権限範囲 | 対象S3バケットへの`PutObject`/`DeleteObject`/`ListBucket`、対象CloudFrontディストリビューションへの`CreateInvalidation`のみ（最小権限） |
 | S3バケットの公開設定 | Block Public Access全項目ON。バケットポリシーはCloudFrontサービスプリンシパル（`SourceArn`条件で対象ディストリビューションに限定）からの`GetObject`のみ許可 |
 | S3バケットの暗号化 | デフォルトSSE-S3（AES256）を有効化 |
@@ -172,6 +172,43 @@ terraform/
 - 真に機密な値（長期AWSアクセスキー等）は本設計に一切登場しない（5章参照）。したがって`dev` EnvironmentにSecretsを登録する必要はない。
 - 登録作業は`gh` CLI未導入のため未実施。GitHub UIの Settings → Environments → `dev` → Variables から手動登録するか、`gh` CLI導入後に`gh variable set --env dev`で登録する（6.1節の値を使用）。
 - `envs/dev`のTerraform自体（`terraform apply`の実行）は今回のスコープでは**手元（ローカルCLI）実行のまま**とし、CI化（GitHub ActionsからのTerraform実行）は行わない。理由：Terraform実行用にS3/CloudFront/ACM/Route53/IAMを作成できる強い権限のOIDCロールが別途必要になり、設計・レビューの負荷が増すため、今回のスコープ（検証環境構築）ではオーバースペックと判断。将来的にTerraform自体のCI化を検討する場合は別途設計する。
+
+### 6.3 OIDC信頼ポリシーをEnvironment形式へ変更（2026-10-23）
+
+**背景（なぜOIDCか）：** 本リポジトリはPublicのため、長期IAMアクセスキーをSecretsに置く方式は避ける（漏洩時の被害が大きく、ローテーションも手動、誤ってコミットするとSecret Scanningの対象になる）。OIDCはワークフロー実行ごとにGitHubが署名付きトークンを発行し、AWSが検証して短時間で失効する一時クレデンシャルを払い出すため、保存すべき秘密情報が存在しない。
+
+**問題：** OIDCの安全性は、IAM Role信頼ポリシーが`sub`クレームで引き受け可能なトークンを絞ることで成り立つ。`sub`の形はワークフローの書き方で変わる。
+
+| ジョブの書き方 | `sub` |
+| --- | --- |
+| `environment:`なし | `repo:asnomi/ReFactory:ref:refs/heads/dev` |
+| `environment: dev`あり | `repo:asnomi/ReFactory:environment:dev` |
+
+初版の信頼ポリシーは前者のみ許可していたが、本設計（6.2節）ではGitHubの`dev` Environment Variablesを使うため、トラックCのジョブは`environment: dev`を付ける。この場合`sub`は後者になり、**そのままではAssumeRoleWithWebIdentityが拒否される**。
+
+**変更内容：**
+- `terraform/modules/static-site/iam.tf`：`sub`条件を`StringLike`（ref形式）から`StringEquals`（`repo:<repo>:environment:<環境名>`、完全一致）へ変更。`aud`条件は維持。
+- 変数`github_ref`を`github_environment`に置換（dev=`dev`、将来のprod=`prod`を想定）。`envs/dev/main.tf`は`github_environment = "dev"`。
+- Role名・権限ポリシー（S3/CloudFrontの最小権限）は変更なし。払い出し済みのバケット名・ディストリビューションID・Role ARNも変わらない。
+
+**前提となるGitHub側設定（ユーザーがUIから実施）：**
+- GitHubの`dev` Environmentの **Deployment branches を `dev` ブランチのみ**（Selected branches）に設定する。ブランチの限定はIAMではなくこの設定で担保する。これを行わないと、他ブランチのジョブも`environment: dev`を指定すればRoleを引き受けられてしまう。
+- 将来の`prod` Environmentも同様に本番ブランチのみに限定する（ブランチ名は`master`/`main`でドキュメント間に表記揺れがあるため、prod構築時に確定）。
+
+### 6.4 CloudFrontでのサブディレクトリindex.html解決（2026-10-23）
+
+**問題：** `default_root_object`はルート（`/`）にしか効かない。S3（REST + OAC）は`/portfolio/`のようなサブディレクトリを`index.html`へ解決せず、403→404（`/404.html`）になる。Hugoは`…/index.html`形式で出力するため、トップ以外が閲覧できない。
+
+**変更内容（`terraform/modules/static-site`内に閉じており、将来の`envs/prod`でも再利用可能）：**
+- `functions/index-rewrite.js`：viewer-request用のCloudFront Function（`cloudfront-js-2.0`）。
+  - `/`で終わるURI → 末尾に`index.html`を付与
+  - 拡張子のないURI（例`/portfolio`）→ `/portfolio/index.html`
+  - 拡張子のあるURI（`.css`、`.js`、`.jpg`等）→ そのまま
+- `cloudfront.tf`：`aws_cloudfront_function.index_rewrite`を追加し、`default_cache_behavior`にviewer-requestとして関連付け。
+- 既存の`custom_error_response`（403/404 → `/404.html`）は維持。存在しないURIは従来通り404.htmlになる。
+- コスト：CloudFront Functionsは月200万リクエストまで無料枠（検証環境の想定アクセスでは無料枠内）。
+
+**検証手順（apply後）：** テスト用に`portfolio/index.html`をS3に置き、`curl -I https://dev.asnomi.com/portfolio/`が200を返すこと、`/`と存在しないURIの挙動（404.html）が変わらないことを確認後、テスト用オブジェクトを削除する。
 
 ---
 

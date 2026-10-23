@@ -35,8 +35,8 @@ variable "github_repo" {
   type        = string
 }
 
-variable "github_ref" {
-  description = "OIDC信頼ポリシーで許可するref（例: refs/heads/dev）。このref由来のワークフロー実行のみがロールを引き受けられる"
+variable "github_environment" {
+  description = "OIDC信頼ポリシーで許可するGitHub Environment名（例: dev, prod）。ジョブに`environment: <この値>`を指定したワークフロー実行のみがロールを引き受けられる"
   type        = string
 }
 

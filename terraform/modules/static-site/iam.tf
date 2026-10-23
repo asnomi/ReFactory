@@ -1,5 +1,8 @@
 # GitHub ActionsがOIDCで一時的に引き受けるデプロイ用ロール。
-# 信頼ポリシーはリポジトリ・ref（ブランチ）単位で絞り込み、意図しないブランチ／フォークからの利用を防ぐ。
+# 信頼ポリシーはリポジトリ・GitHub Environment単位で完全一致に絞り込む。
+# ジョブに`environment:`を指定した場合、OIDCトークンのsubは`repo:<repo>:environment:<env>`形式になり、
+# ref形式（`...:ref:refs/heads/...`）にはならない。ブランチの限定はIAMではなく、
+# GitHub側のEnvironment「Deployment branches」設定で行う（設計書トラックD 6.3節参照）。
 data "aws_iam_policy_document" "github_actions_assume_role" {
   statement {
     effect  = "Allow"
@@ -17,9 +20,9 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     }
 
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:${var.github_ref}"]
+      values   = ["repo:${var.github_repo}:environment:${var.github_environment}"]
     }
   }
 }
