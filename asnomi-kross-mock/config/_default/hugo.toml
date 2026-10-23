@@ -1,6 +1,7 @@
 ######################## default configuration ####################
 baseURL = "/"
-title = "asnomi studio (Kross mock)"
+title = "asnomi studio"
+languageCode = "ja"
 theme = ["kross"]
 # Default time zone for time stamps; use any valid tz database name: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
 timeZone = "UTC"

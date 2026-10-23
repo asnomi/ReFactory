@@ -1,24 +1,14 @@
 ---
 title: "プロフィール"
-description: "asnomi studio プロフィールページ。"
-author_image : "images/mock/work-1.png"
-author_signature : ""
+description: "孤独を美しい静寂に書き換えるアトリエ「asnomi studio」のプロフィール。"
 draft: false
 layout: "about"
-
-# work process（アーティスト個人サイトのためスコープ外・非表示）
-work_process:
-  enable : false
-
-# team（個人活動のためスコープ外・非表示）
-team:
-  enable: false
-
-# client logo slider（スコープ外・非表示）
-clients_logo_slider:
-  enable : false
+# プロフィール画像を表示する場合は、assets/ 配下の画像パスを指定する（例: author_image: "images/profile/icon.jpg"）。未指定なら画像なしで表示される。
+# author_image: ""
 ---
 
-イラストレーター / アーティストとして活動しています（モック用ダミープロフィール本文）。
+**孤独を美しい静寂に書き換えるアトリエ「asnomi studio」。**
 
-日々の制作物や活動の近況は「お知らせ」ページで随時更新しています。
+淡くふわふわしたイラストと、飽和した音の層が織りなすオルタナティブ・ロック。作編曲から録音、イラスト制作まで全工程を一人で完結させることで、1ミリのズレもない純度の高い世界観を構築しています。
+
+J-Popの叙情性にサイケ、グランジ、シューゲイザーをミックスし、深く、静かに、音と絵が重なり合う没入体験を紡ぎます。

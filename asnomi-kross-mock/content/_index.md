@@ -1,14 +1,17 @@
 ---
-# banner (T2-3: ヒーローエリア — 大胆な画像+コピー方針でカスタムオーバーライド済み)
+# banner（トップ最上部のヒーロー）
+#   image    : assets/ 配下の画像パス。ビルド時にリサイズ+WebP化される
+#   title    : キャッチコピー（任意。改行は <br>）。空ならコピーなしの画像のみ
+#   subtitle : サブテキスト（任意）
 banner:
-  title : "見て、感じて、<br>描き続ける。"
-  subtitle : "asnomi studio — illustration & art portfolio"
-  image : "images/mock/hero.jpg"
+  image : "images/hero/hero.jpg"
+  title : ""
+  subtitle : ""
 
 # about
 about:
   enable : true
-  content : "イラストレーター / アーティストとして活動しています。日々の制作物や近況はこちらのサイトで随時更新していきます。"
+  content : "趣味でイラストレーター/シンガーソングライターしてる「あすのみ」の公式Webサイトです。制作物や近況はこちらで発信します。"
   button:
     enable : true
     label : "プロフィールを見る"

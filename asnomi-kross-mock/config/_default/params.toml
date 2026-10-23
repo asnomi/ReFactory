@@ -33,7 +33,9 @@ custom_script = ""
 author = "asnomi"
 
 # copyright
-copyright = "&copy; asnomi studio"
+# フッターのコピーライト表記: ©{copyright_since}-{ビルド年} {copyright_holder}（終了年はビルド時に自動で更新される）
+copyright_since = 2012
+copyright_holder = "asnomi studio"
 theme_copyright = false
 
 # Preloader
@@ -70,10 +72,10 @@ visitor = true
 
 # seo meta data for OpenGraph / Twitter Card
 [metadata]
-author = "Themefisher" 
-description = "This is meta description" 
-image = "images/favicon.png" # this image will be used as fallback if a page has no image of its own
-keywords = ["Boilerplate", "Hugo", "Themefisher", "GetHugoThemes"] 
+author = "asnomi"
+description = "asnomi studioのポートフォリオサイト"
+image = "images/ogp.jpg" # OGP/Twitterカードの既定画像（static/images/ogp.jpg）。個別の画像を持たないページで使われる
+keywords = ["アイスノミ", "asnomi", "あすのみ", "asnomi studio"]
 
 # matomo tracking: see https://matomo.org/
 [matomo]
@@ -158,22 +160,41 @@ URL = "#"
 logo = "images/clients-logo/client-logo-5.png"
 
 ############################# social site ########################
+# 表示順＝ヒーロー・お問い合わせページでの並び順。
+# 各項目: title（表示名）, link（URL）, icon（Themifyアイコンのクラス）または badge（アイコンが無い場合の丸囲み文字）
+# Themifyアイコン一覧: https://themify.me/themify-icons （SoundCloud/Pixiv/はてな/TuneCore/Xは無いためbadgeで代用）
+# 項目の追加・削除・並べ替えはこのブロックだけで完結する（テンプレート側の変更は不要）。
 [[social]]
-icon = "ti-facebook" # themify icon https =themify.me/themify-icons
-link = "#" 
-title = "facebook" 
+title = "X"
+link = "https://x.com/asnomi_com"
+badge = "X"
 
 [[social]]
-icon = "ti-twitter" # themify icon - https://themify.me/themify-icons
-link = "#" 
-title = "twitter" 
+title = "Instagram"
+link = "https://www.instagram.com/asnomi_com/"
+icon = "ti-instagram"
 
 [[social]]
-icon = "ti-instagram" # themify icon - https://themify.me/themify-icons
-link = "#" 
-title = "instagram" 
+title = "YouTube"
+link = "https://www.youtube.com/@asnomi_com"
+icon = "ti-youtube"
 
 [[social]]
-icon = "ti-linkedin" # themify icon - https://themify.me/themify-icons
-link = "#" 
-title = "linkedin"
+title = "SoundCloud"
+link = "https://soundcloud.com/asnomi_studio"
+badge = "SC"
+
+[[social]]
+title = "はてなブログ"
+link = "https://asnomi.hatenablog.com/"
+badge = "B"
+
+[[social]]
+title = "Pixiv"
+link = "https://www.pixiv.net/users/1591078"
+badge = "P"
+
+[[social]]
+title = "TuneCore Japan"
+link = "https://www.tunecore.co.jp/artists/asnomi"
+badge = "TC"

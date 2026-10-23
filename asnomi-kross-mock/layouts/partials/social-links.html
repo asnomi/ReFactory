@@ -1,0 +1,23 @@
+{{- /*
+  SNSリンクの <li> 一覧を出力する（config/_default/params.toml の [[social]] を使用）。
+  引数(dict):
+    liClass : <li> に付けるクラス
+    aClass  : <a> に付けるクラス
+    label   : true なら表示名を視覚的に表示する（false なら読み上げ用の隠しテキストのみ）
+  各項目は icon（Themifyのクラス）があればアイコン、無ければ badge（丸囲みの文字）を表示する。
+*/ -}}
+{{- $liClass := .liClass | default "" -}}
+{{- $aClass := .aClass | default "" -}}
+{{- $label := .label | default false -}}
+{{- range site.Params.social -}}
+<li class="{{ $liClass }}">
+  <a class="{{ $aClass }}" href="{{ .link | safeURL }}" target="_blank" rel="noopener noreferrer me" title="{{ .title }}">
+    {{- if .icon -}}
+    <i class="{{ .icon }}" aria-hidden="true"></i>
+    {{- else -}}
+    <span class="social-badge" aria-hidden="true">{{ .badge | default (substr .title 0 1) }}</span>
+    {{- end -}}
+    <span class="{{ if $label }}social-label ms-2{{ else }}visually-hidden{{ end }}">{{ .title }}</span>
+  </a>
+</li>
+{{- end -}}
