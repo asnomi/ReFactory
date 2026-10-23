@@ -207,7 +207,7 @@ MVPデプロイ（`dev.asnomi.com`）後に判明した2点への対応。いず
 | ファビコン | 現行サイトのもの（48×48 PNG）を`assets/images/favicon.png`に配置（Hugoが48/96/144pxに変換）。元が小さいためPWA用の大きいアイコンはぼやける | `params.toml`の`favicon` |
 | SNS | X / Instagram / YouTube / SoundCloud / はてなブログ / Pixiv / TuneCore Japan（表示順どおり）。ヒーロー（アイコン）とお問い合わせページ（アイコン+名称）で共通 | `config/_default/params.toml`の`[[social]]` |
 | サイト名・メタ | サイト名`asnomi studio`、description/keywords/author、`lang="ja"`、OGP既定画像（現行サイトの720×420を流用） | `config/_default/hugo.toml`・`params.toml`の`[metadata]`、`static/images/ogp.jpg` |
-| フッター | `©2012-{ビルド年} asnomi studio`のみ（終了年はビルド時に自動更新）。Kross標準のお問い合わせフォーム・連絡先欄は撤去 | `layouts/partials/essentials/footer.html`、`params.toml`の`copyright_since`/`copyright_holder` |
+| フッター | お問い合わせフォーム（名前・メールアドレス・内容）＋`©2012-{ビルド年} asnomi studio`（終了年はビルド時に自動更新）。Kross標準から電話・住所欄のみ除外。フォームの送信先は`contact_form_action`で指定（未設定の`"#"`のままだと送信されない） | `layouts/partials/essentials/footer.html`、`params.toml`の`contact_form_action`/`copyright_since`/`copyright_holder` |
 
 **テンプレート側の変更点（プロジェクト側`layouts/`のオーバーライド）:**
 - `layouts/index.html`: ヒーローを`assets/`画像のレスポンシブ`<img>`化。コピー無しでも`<h1>`（視覚的には非表示）を出力。
@@ -228,7 +228,7 @@ MVPデプロイ（`dev.asnomi.com`）後に判明した2点への対応。いず
 - **PurgeCSSの設定不備の修正（NF-102）**: 7.7節参照。`postcss.config.js`のsafelistの正規表現エスケープ修正と、モバイルメニュー・カテゴリ絞り込み・ホバー表示等の目視確認。
 - **作品・ニュースの実データ差し替え**: 素材待ち。差し替えまでの作品・ニュースは、Kross付属のサンプル画像を使ったダミー。
 - **SNS共有画像・ファビコンの高解像度化**: OGP既定画像は現行サイトの720×420（推奨1200×630より小さい）を流用中。ファビコンも元が48×48のため、必要になれば大きい版を用意する。
-- **お問い合わせ手段**: フッターのお問い合わせフォーム（送信先未設定で動作しなかった）を撤去したため、「お問い合わせ」ページは現状SNS・リンク一覧のみ。連絡手段の方針（メールアドレス掲載／フォーム導入／ページ名変更）は要判断。
+- **お問い合わせフォームの送信先**: フッターのフォームは復活済みだが、`contact_form_action`が`"#"`のままで送信されない。公開前にFormspree等の外部フォームサービスを選定してURLを設定する（要判断）。「お問い合わせ」ページ自体は現状SNS・リンク一覧のみ。
 
 - **F-303: ギャラリーの年別ソート/グルーピング機能**（2026-08-25申し送り決定、5章参照）: MVP稼働後に改めて検討
 - **ダークモード対応**: 現行サイトにはあるが、Kross標準にはない。追加SCSS実装が必要

@@ -1,9 +1,44 @@
 {{- /*
-  フッターはコピーライト表記のみ（お問い合わせフォーム・連絡先欄はKross標準から撤去）。
-  表記: ©{copyright_since}-{ビルド年} {copyright_holder}（params.toml）。開始年とビルド年が同じなら年は1つだけ表示。
+  フッター: お問い合わせフォーム + コピーライト表記。
+  Kross標準のフッターから、電話・住所欄（個人サイトのため未使用）を除いた版。
+  フォームの送信先は params.toml の contact_form_action で指定する（Formspree等の外部フォームサービスのURL）。
+  "#" のままだと送信しても何も送られないので、公開前に必ず設定すること。
+  コピーライト: ©{copyright_since}-{ビルド年} {copyright_holder}（開始年とビルド年が同じなら年は1つだけ）。
 */ -}}
 {{ $since := site.Params.copyright_since }}
 {{ $year := now.Year }}
+<!-- contact -->
+<section class="section section-on-footer" {{ partial `bg-image.html` (dict `Src` "images/backgrounds/bg-dots.png" ) | safeHTMLAttr }}>
+  <div class="container">
+    <div class="row">
+      <div class="col-12 text-center">
+        <h2 class="section-title">お問い合わせ</h2>
+      </div>
+      <div class="col-lg-8 mx-auto">
+        <div class="bg-white rounded text-center p-5 shadow-down">
+          <h3 class="h4 mb-80">お問い合わせフォーム</h3>
+          <form action="{{ site.Params.contact_form_action }}" method="POST" class="row">
+            <div class="col-md-6">
+              <input type="text" id="name" name="name" placeholder="お名前" autocomplete="name" class="form-control px-0 mb-4">
+            </div>
+            <div class="col-md-6">
+              <input type="email" id="email" name="email" placeholder="メールアドレス" autocomplete="email" required class="form-control px-0 mb-4">
+            </div>
+            <div class="col-12">
+              <textarea name="message" id="message" required class="form-control px-0 mb-4"
+                placeholder="お問い合わせ内容"></textarea>
+            </div>
+            <div class="col-lg-6 col-10 mx-auto">
+              <button class="btn btn-primary w-100">送信</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- /contact -->
+
 <!-- footer -->
 <footer class="bg-dark footer-section">
   <div class="footer-bottom text-center border-dark py-4">
