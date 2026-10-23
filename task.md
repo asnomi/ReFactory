@@ -14,14 +14,16 @@
 | --- | --- |
 | A（フロント/Kross） | モック完成・`dev`マージ済み（content出力パスをBの設計に統一）。次は本実装フェーズ待ち |
 | B（Notion連携） | ⏸ 一時停止（MVP優先のため）。DB定義はKross要件に合わせてユーザーが再検討中 |
-| C（CI/CD） | 🎯 最優先。dev向け最小デプロイワークフローを実装（依頼済み 2026-10-23） |
-| D（インフラ/Terraform） | 🎯 最優先。dev環境apply済み。CloudFront Function（サブディレクトリindex）のみ対応（依頼済み 2026-10-23）。OIDCのEnvironment対応は後回し |
+| C（CI/CD） | ✅ dev向け最小デプロイワークフロー稼働（2026-10-23 `dev.asnomi.com` へのデプロイ成功） |
+| D（インフラ/Terraform） | ✅ dev環境のMVP対応完了（CloudFront Functionでサブディレクトリindex解決、OIDC信頼ポリシーを実トークン形式に修正・apply済み 2026-10-23）。次は本番Terraform化等（時期未定） |
 
 **🎯 方針変更（2026-10-23）: MVP最優先 ＝「Krossモックを `dev.asnomi.com` にデプロイして見られる状態にする」**
 - Notion連携（トラックB）はこのゴールに不要のため一時停止。DB定義はKrossの要件（作品: title/date/image/categories(=種別)/description/本文、ニュース: title/date/image/description/本文、ヒーロー: params.banner）に合わせてユーザーが再検討する。下記Phase 1の新DB関連の記述はDB定義確定後に書き直す。
 - Krossソースの改修済み箇所は現状のまま維持する。
 - **クリティカルパス:** トラックD（CloudFront Functionでサブディレクトリindex解決）＋ トラックC（`dev`へのpushで ビルド→S3 sync→Invalidation する最小ワークフロー。Notion同期・cron・Environmentは使わない）→ `dev.asnomi.com` で確認。
-- OIDC信頼ポリシーの修正（Environment対応）は、MVPではリポジトリ直下のVariablesを使うことで回避し、後回しにする。
+- OIDC信頼ポリシーの修正（Environment対応）は、MVPではリポジトリ直下のVariablesを使うことで回避し、後回しにする。→ **結果的に対応済み（2026-10-23）**：初回デプロイでAssumeRoleが失敗し、GitHubの`sub`が数値ID付き形式（`repo:asnomi@81574932/ReFactory@1346288783:…`）だったことが原因と判明。トラックCのdeployジョブは`environment: dev`を使う形とし、信頼ポリシーは`repo:asnomi@81574932/ReFactory@1346288783:environment:dev`の完全一致に修正（設計書トラックD 6.3・6.5節）。値はリポジトリ直下のVariablesのまま。
+- **✅ MVPゴール達成（2026-10-23）**：`dev.asnomi.com` でKrossモックのトップ・`/works/`・`/news/` が200で表示されることを確認。
+- 🟡 **残課題（トラックA/C）：ビルド成果物に`404.html`が無い**ため、存在しないURIが404ページではなく403になる。CloudFront側は`/404.html`を返す設定済みなので、Hugo側で`404.html`を出力すれば解消する。
 - CIビルドのブロッカー（トラックCで解消）: `themes/kross/` と `content/` がgit管理外、`package-lock.json` 未コミット、サイトルートが `asnomi-kross-mock/` 配下。
 
 ---
@@ -164,14 +166,14 @@
     - [x] ACM証明書の発行（us-east-1、DNS検証）
     - [x] OIDC用IAM Role（GitHub Actionsが引き受ける）のTerraform化・作成
     - [x] S3バケット名・CloudFrontディストリビューションID・IAM Role ARNの払い出し（設計書トラックD 6.1節）
-    - [ ] 🟡 **GitHub `dev` Environment Variables への登録が未実施**（`gh` CLI未導入のためUIから手動登録が必要）
-    - [ ] 🔴 **OIDC信頼ポリシーの修正**: 現状 `sub` が `ref:refs/heads/dev` 固定。トラックCが GitHub Environment（`environment: dev`）を使うと `sub` が `environment:dev` 形式に変わり AssumeRole が失敗する（2026-10-23レビュー指摘）
-    - [ ] 🔴 **CloudFrontのサブディレクトリindex対応**: OAC+S3（REST）構成のため `/portfolio/` 等が `index.html` に解決されず404になる。CloudFront Function（viewer-request）で `/` 終端URIを `index.html` に書き換える対応が必要（2026-10-23レビュー指摘）
+    - [x] ~~GitHub `dev` Environment Variables への登録~~ → 値はリポジトリ直下のVariables（`vars.*`）で管理する形に変更（トラックC実装）。GitHubの`dev` Environmentは作成済みで、Deployment branchesを`dev`のみに設定済み（2026-10-23、ユーザー実施）
+    - [x] **OIDC信頼ポリシーの修正**（2026-10-23 apply済み）: `sub`を`repo:asnomi@81574932/ReFactory@1346288783:environment:dev`の完全一致（StringEquals）に変更。GitHubが`sub`を数値ID付きで発行していたことがCloudTrailで判明したため、それに合わせた。ブランチ限定はEnvironmentのDeployment branchesで担保（設計書トラックD 6.3・6.5節）
+    - [x] **CloudFrontのサブディレクトリindex対応**（2026-10-23 apply済み）: viewer-requestのCloudFront Function（`cloudfront-js-2.0`）で`/works/`・`/works`等を`index.html`に解決。テスト用オブジェクトで200/404を確認後に削除（設計書トラックD 6.4節）
     - [ ] 本番環境（`asnomi.com`）のTerraform化（`envs/prod/`追加）— 時期未定
   - **【トラックC担当】ワークフロー側の対応（トラックDの払い出し完了済み。上記🔴の修正見込みを踏まえて着手可）:**
     - [ ] GitHub Actionsワークフロー（T3-1）に、pushされたブランチ（`main`/`dev`）に応じてデプロイ先（S3バケット名・CloudFrontディストリビューションID）を切り替える分岐ロジックを追加
     - [ ] Secrets/Variables構成の見直し（環境ごとに異なる値を持つため、GitHub Environments機能での分離を検討 — 設計書5.2節は単一環境前提だったため要更新）
-  - [ ] NF-202コスト試算（T4-4）への影響を反映（dev環境分のS3・CloudFront費用を追加試算）→ トラックD
+  - [x] NF-202コスト試算（T4-4）への影響を反映（dev環境分のS3・CloudFront費用を追加試算）→ トラックD：増分は月額$1未満（設計書トラックD 7章。CloudFront Functionsも無料枠内）
   - 関連要件: F-204
 
 ---
@@ -181,7 +183,7 @@
 ### 可用性・パフォーマンス（Block 4）
 
 - [ ] **T4-1. インフラ可用性の確認** 🟡 チェックリスト化完了、現行設定の実地確認は未実施　**【トラックD担当】**
-  - [ ] S3 + CloudFront構成の現行踏襲・設定確認 → 設計書6章に確認項目リスト化済み。**dev環境はapply後の実機確認でDNS解決・HTTPS・OAC経由の非公開アクセス（未デプロイ時403）を確認済み**。本番（`asnomi.com`）側の現行設定確認は未実施。
+  - [ ] S3 + CloudFront構成の現行踏襲・設定確認 → 設計書6章に確認項目リスト化済み。**dev環境はapply後の実機確認でDNS解決・HTTPS・OAC経由の非公開アクセス（未デプロイ時403）を確認済み。2026-10-23のデプロイ後、トップ・サブディレクトリの表示（200）も確認済み**。本番（`asnomi.com`）側の現行設定確認は未実施。
   - 関連要件: NF-101
 
 - [ ] **T4-2. 画像処理・高速表示対応** 【トラックA/B担当・変更なし】
