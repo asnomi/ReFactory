@@ -425,6 +425,7 @@ Secretsは全て **リポジトリSecrets**（Environment分離は現時点で�
 
 - `concurrency: deploy-dev`（`cancel-in-progress: false`。S3 syncの途中打ち切りを避け、後続は待機）。
 - **OIDCの`sub`と`environment:`（2026-10-23訂正）:** 信頼ポリシーはトラックD設計書6.3で`repo:asnomi/ReFactory:environment:dev`完全一致に変更された。`environment:`なしのジョブは`sub`が`...:ref:refs/heads/dev`になりAssumeRoleが拒否される（初回CIの失敗原因）。そのため`deploy`ジョブに`environment: dev`を付けた。`id-token: write`は最小権限としてdeployジョブのみに付与。
+- **実際の経緯（2026-10-23）:** AssumeRole失敗は2段階だった。①AWS上の信頼ポリシーがref形式のままだった（本PR #7で`environment: dev`を付けても解消せず）。②GitHubが`sub`をオーナー名・リポジトリ名に数値ID付きの形式（`repo:asnomi@<ownerId>/ReFactory@<repoId>:environment:dev`）で発行しており、文字列が一致しなかった。トラックDが信頼ポリシーをこの形式へ修正・適用して解消し、デプロイ成功（トラックD設計書6.5節）。ワークフロー側に数値IDの記述は不要。
 - **ジョブを分離した理由:** `environment: dev`のジョブは、Environmentの「Deployment branches」を`dev`のみに限定するとdev以外のrefでは開始自体が拒否される。buildを別ジョブ（Environmentなし）にしておけば、`dev`マージ前にfeatureブランチで`workflow_dispatch`して本番ビルド（PostCSS/PurgeCSS）の成否だけ確認できる。
 - **Deployment branches設定:** ブランチ限定はIAMではなくEnvironment側で担保する設計（D設計書6.3）。`dev` Environmentは未作成でも`environment: dev`の初回実行で自動作成されるが、その場合は制限なしになるため、**GitHub UI（Settings → Environments → dev → Deployment branches → Selected branches → `dev`）で設定する**（トラックD依頼事項）。
 
