@@ -22,6 +22,13 @@
 <section class="section">
   <div class="container">
     <div class="row">
+      {{/* 案内文は content/contact.md の本文、メールアドレスは params.toml の contact_info.email */}}
+      <div class="col-lg-8 mx-auto text-center mb-5">
+        <div class="content">{{ .Content }}</div>
+        {{ with site.Params.contact_info.email }}
+        <p class="contact-mail mt-4"><i class="ti-email me-2" aria-hidden="true"></i><a href="mailto:{{ . }}">{{ . }}</a></p>
+        {{ end }}
+      </div>
       <div class="col-12 text-center">
         <h2 class="section-title">SNS・リンク</h2>
       </div>

@@ -4,19 +4,20 @@
 
 ######################### site variables ##############################
 # customize your color and font from here.
-# T2-2: 現行サイト(asnoni.com)のトンマナ(モノクロ基調+ミュートな青灰色アクセント)に寄せた値
+# 配色: グレー・ターコイズ・ピンクの淡い色合い（ハワイ風）。色の変更はここだけで全体に反映される
+# 淡い背景色の上の文字は、読みやすさのため濃いグレー(text_dark)にしている（custom.scss の「配色」参照）
 [params.variables]
-color_primary = "#353d49"
-color_secondary = "#879094"
+color_primary = "#9fd8d1"   # 淡いターコイズ: ヘッダー(スクロール時・スマホ)・下層ページの見出し帯・ボタン
+color_secondary = "#f3a7b8" # 淡いピンク: 選択中の絞り込みボタン等のアクセント
 body_color = "#fff"
-border_color = "#c7c7c7"
+border_color = "#dde3e3"
 black = "#000"
 white = "#fff"
-light = "#eee"
-gray = "#eaeaea"
-text_color = "#353d49"
-text_dark = "#252627"
-text_light = "#879094"
+light = "#f2f4f4"           # フッターの背景
+gray = "#eef1f1"
+text_color = "#5d6468"      # 本文
+text_dark = "#3b4246"       # 見出し・淡い背景の上の文字
+text_light = "#8c9598"      # 日付などの補助的な文字
 
 # font variables
 # base font size for full website, 
@@ -36,11 +37,11 @@ font_scale = "1.205" # default is "majorThird": 1.25
 # go to https://fonts.google.com/ to find the font you want to use. select your font and copy only the bold part from the URL. and paste it here.
 # example: "Work+Sans:wght@400;500;600"
 font_icon = "themify" # https://themify.me/themify-icons
-# 現行サイトは自前フォント'OpenSauceOne'(Google Fontsに無し)。モックでは近似の代替としてWork Sansを暫定使用。
-# 本実装時は自前フォントの@font-face読み込みへの差し替えを検討(T2-2)。
-font_primary = "Work+Sans:wght@400;500;600"
+# フォントは Adobe Fonts（キット plc5kmg、現行サイトと同じ）を使う。読み込みは layouts/partials/essentials/head.html の埋め込みコード
+# ここでは書体名だけを指定する: 本文・小見出し・メニュー・ボタン = vdl-yotag（大見出し h1 の ab-anzu は custom.scss で指定）
+font_primary = "vdl-yotag"
 font_primary_type = "sans-serif" # [serif/sans-serif]
-font_secondary = "Work+Sans:wght@600;700"
+font_secondary = "vdl-yotag"
 font_secondary_type = "sans-serif" # [serif/sans-serif]
 
 ############################# Plugins ##############################
@@ -48,8 +49,6 @@ font_secondary_type = "sans-serif" # [serif/sans-serif]
 # CSS Plugins
 [[params.plugins.css]]
 link = "plugins/themify-icons/icons.css"
-[[params.plugins.css]]
-link = "plugins/swiper/swiper-bundle.css"
 
 # JS Plugins
 # [[params.plugins.js]]
@@ -60,7 +59,5 @@ link = "plugins/cookie.js"
 link = "plugins/lazy-loader.js" 
 [[params.plugins.js]]
 link = "plugins/shuffle/shuffle.min.js"
-[[params.plugins.js]]
-link = "plugins/swiper/swiper-bundle.js"
-[[params.plugins.js]]
-link = "plugins/webfont/webfont-loader-2.js" 
+# Swiper（スライダー）はどのページでも使っていないため読み込まない（2026-10-26削除。約150KB削減）
+# webfont-loader（Google フォント等の読み込み部品）は、読み込み指示が無く実際には使われていなかったため外した（フォントは Adobe Fonts の埋め込みコードで読み込む） 

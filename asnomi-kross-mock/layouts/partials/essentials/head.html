@@ -9,6 +9,28 @@
 <meta name="robots" content="noindex, nofollow" />
 {{ end }}
 
+<!-- Adobe Fonts（キット plc5kmg）。現行サイトと同じ JavaScript 埋め込みコード。
+     日本語フォントは必要な文字だけを読み込む方式（動的サブセット）のため、CSS の link ではなくこの方式が必要 -->
+<script>
+  (function (d) {
+    var config = { kitId: "plc5kmg", scriptTimeout: 3000, async: true },
+      h = d.documentElement,
+      t = setTimeout(function () { h.className = h.className.replace(/\bwf-loading\b/g, "") + " wf-inactive"; }, config.scriptTimeout),
+      tk = d.createElement("script"), f = false, s = d.getElementsByTagName("script")[0], a;
+    h.className += " wf-loading";
+    tk.src = "https://use.typekit.net/" + config.kitId + ".js";
+    tk.async = true;
+    tk.onload = tk.onreadystatechange = function () {
+      a = this.readyState;
+      if (f || (a && a != "complete" && a != "loaded")) return;
+      f = true;
+      clearTimeout(t);
+      try { Typekit.load(config); } catch (e) {}
+    };
+    s.parentNode.insertBefore(tk, s);
+  })(document);
+</script>
+
 <!-- theme meta -->
 <meta name="theme-name" content="kross-hugo" />
 

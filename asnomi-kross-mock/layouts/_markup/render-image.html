@@ -1,0 +1,6 @@
+{{- /*
+  Markdown本文の画像 ![alt](images/...) を、assets/ 配下の画像として解決して表示する。
+  Notion同期が本文の画像を assets/images/ に保存し、images/... の形で参照するため。
+  フロントマターの image と同じ image.html（リサイズ・WebP変換）を通す。http(s) の画像はそのまま表示される。
+*/ -}}
+{{ partial "image.html" (dict "Src" .Destination "Alt" .PlainText "Class" "rounded w-100 d-block my-4") }}

@@ -40,14 +40,6 @@ portfolio:
   item_show : 6
   # portfolio item comes from 'content/english/portfolio' folder
 
-# testimonial（スコープ外のため非表示）
-testimonial:
-  enable : false
-
-# client logo slider（スコープ外のため非表示）
-clients_logo_slider:
-  enable : false
-
 # blog -> news (T2-5: ニュース・近況エリア、ホームには最新3件)
 blog:
   enable : true
