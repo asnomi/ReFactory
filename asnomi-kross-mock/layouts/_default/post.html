@@ -1,9 +1,9 @@
 {{- /*
   ニュース記事カード（ホームのお知らせ・/news/一覧で使用）。
-  Kross標準から、①画像を任意に（未指定でも崩れない）、②日付を表示、③閉じていない<a>タグを修正。
+  Kross標準から、①画像を任意に（未指定でも崩れない）、②日付を表示、③閉じていない<a>タグを修正、④同じ行のカードの高さをそろえる（h-100）。
 */ -}}
 <div class="col-lg-4 col-sm-6 mb-4">
-  <article class="card shadow overflow-hidden">
+  <article class="card shadow overflow-hidden h-100">
     {{ with .Params.image }}
     <a href="{{ $.Permalink }}" title="{{ $.Title }}">
       {{ partial "image.html" (dict "Src" . "Alt" $.Title "Size" `500x`) }}

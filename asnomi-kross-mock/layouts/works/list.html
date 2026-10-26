@@ -4,7 +4,7 @@
 
 <!-- portfolio -->
 <section class="section">
-  <div class="container">
+  <div class="container container-wide">
     <div class="row mb-5">
       <div class="col-12">
         <div class="btn-group btn-group-toggle justify-content-center d-flex flex-wrap" data-bs-toggle="buttons">
@@ -37,7 +37,7 @@
         });
       });
     </script>
-    <div class="row shuffle-wrapper">
+    <div class="row grid-tight shuffle-wrapper">
       {{ range .RegularPages }}
       <div class="col-lg-4 col-6 mb-4 shuffle-item"
         data-groups="[{{range $index, $element:= .Params.categories }}{{if ne $index 0}},{{end}}&quot;{{. | urlize}}&quot;{{ end }}]">
