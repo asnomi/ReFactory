@@ -20,7 +20,6 @@ indexableHosts = ["asnomi.com", "www.asnomi.com"]
 purge_css = true
 
 # contact form action
-contact_form_action = "#" # フッターのお問い合わせフォームの送信先（Formspree等のフォームサービスのURL）。"#"のままだと送信しても何も送られない。公開前に要設定。例: https://formspree.io/f/xxxxxxxx
 
 # google tag manager, see https://developers.google.com/tag-manager/
 google_adsense = "" # example: ca-pub-xxxxxxxxxxxxxxxx
@@ -44,7 +43,7 @@ theme_copyright = false
 enable = false
 preloader = "images/preloader.gif" # use jpg, png, svg or gif format.
 
-# contact info（モック用ダミー。実データはNotion側で管理予定）
+# お問い合わせ先。email はお問い合わせページに表示される（address・mobile は未使用）
 [contact_info]
 address = ""
 email = "asnomi.com@gmail.com"
