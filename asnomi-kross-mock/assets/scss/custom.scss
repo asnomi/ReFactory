@@ -159,7 +159,7 @@ img.img {
 .btn-group-toggle .btn.active:hover {
   background-color: $color-secondary !important;
   border-color: $color-secondary !important;
-  color: $white;
+  color: $text-dark;
 }
 
 // ---------------------------------------------
@@ -176,6 +176,7 @@ img.img {
   background-color: $light;
   color: $text-color;
   font-size: 0.9rem;
+  padding-top: 0; // テーマ標準の上余白200px（お問い合わせフォームのカードを重ねるための余白）は不要になったため詰める
 
   a {
     color: $text-dark;
@@ -224,4 +225,65 @@ img.img {
   .social-label {
     font-size: 1rem;
   }
+}
+
+// ---------------------------------------------
+// 配色（グレー・ターコイズ・ピンクの淡い色合い）
+// 色そのものは hugo.toml の params.variables で指定。ここでは「淡い背景の上は濃いグレーの文字」にする調整を行う
+// ---------------------------------------------
+$link-hover: #3c9a92; // リンク色・ホバー色（淡いターコイズの文字は白地で読めないため、濃いめのターコイズ）
+
+// 本文中のリンク等の標準色（Bootstrap標準の青をやめ、配色に合わせる）
+:root {
+  --bs-link-color-rgb: #{red($link-hover)}, #{green($link-hover)}, #{blue($link-hover)};
+  --bs-link-hover-color-rgb: #{red($link-hover)}, #{green($link-hover)}, #{blue($link-hover)};
+}
+
+a:hover,
+a.text-dark:hover {
+  color: $link-hover !important;
+}
+
+::selection {
+  background: $color-primary;
+  color: $text-dark;
+}
+
+// ヘッダー: 淡い背景になったら濃いグレーの文字。トップの写真の上（透明な状態）だけ白文字
+.navigation {
+  .navbar-brand h3,
+  .navbar-nav .nav-link,
+  .navbar-toggler {
+    color: $text-dark !important;
+  }
+
+  .navbar-toggler {
+    border-color: rgba($text-dark, 0.25);
+  }
+
+  &.navigation-on-hero:not(.nav-bg) {
+    @media (min-width: 992px) {
+      .navbar-brand h3,
+      .navbar-nav .nav-link {
+        color: $white !important;
+      }
+    }
+  }
+}
+
+// 下層ページの見出し帯
+.page-title-heading {
+  color: $text-dark;
+}
+
+// ボタン（絞り込み・続きを読む等）: 淡いターコイズ地に濃いグレーの文字
+.btn.btn-primary,
+.btn.btn-primary:hover,
+.btn.btn-primary:focus {
+  color: $text-dark;
+}
+
+// 見出し
+.section-title {
+  color: $text-dark;
 }
