@@ -25,6 +25,18 @@
         </div>
       </div>
     </div>
+    <script>
+      // 絞り込みボタンの選択状態（.active）を、選ばれたボタンに付け替える。
+      // テーマ標準の data-bs-toggle="buttons" は Bootstrap 4 の機能で、Bootstrap 5 では廃止されていて何も起きないため自前で行う。
+      // （絞り込み自体はテーマの script.js が Shuffle.js で行う）
+      document.querySelectorAll('input[name="shuffle-filter"]').forEach(function (input) {
+        input.addEventListener("change", function () {
+          document.querySelectorAll('input[name="shuffle-filter"]').forEach(function (i) {
+            i.closest("label").classList.toggle("active", i.checked);
+          });
+        });
+      });
+    </script>
     <div class="row shuffle-wrapper">
       {{ range .RegularPages }}
       <div class="col-lg-4 col-6 mb-4 shuffle-item"

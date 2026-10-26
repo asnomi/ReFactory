@@ -102,6 +102,18 @@ img.img {
 }
 
 // ---------------------------------------------
+// 作品ギャラリーの絞り込みボタン: 選択中のボタンをアクセント色にして、他のボタンと区別しやすくする
+// （テーマ標準の選択中の色は、通常時との差がほとんど無く見分けにくいため）
+// テーマ側の .btn-primary.active / :hover が !important で色を指定しているため、こちらも !important で上書きする
+// ---------------------------------------------
+.btn-group-toggle .btn.active,
+.btn-group-toggle .btn.active:hover {
+  background-color: $color-secondary !important;
+  border-color: $color-secondary !important;
+  color: $white;
+}
+
+// ---------------------------------------------
 // 下層ページの見出しバー（装飾イラストを撤去したので余白を詰める）
 // ---------------------------------------------
 .page-title {
