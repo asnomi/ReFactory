@@ -287,3 +287,13 @@ a.text-dark:hover {
 .section-title {
   color: $text-dark;
 }
+
+// ---------------------------------------------
+// フォント（Adobe Fonts、現行サイトと同じ割り当て）
+// 本文・小見出し・メニュー・ボタンは vdl-yotag（hugo.toml の font_primary / font_secondary）、大見出し(h1)だけ ab-anzu
+// （テーマの .font-secondary クラスは !important でフォントを固定するため、h1 には付けない）
+// ---------------------------------------------
+h1,
+.h1 {
+  font-family: ab-anzu, sans-serif;
+}
