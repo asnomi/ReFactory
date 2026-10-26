@@ -15,7 +15,15 @@
 | A（フロント/Kross） | 🔄 実素材への差し替え進行中（PR #11〜#16 マージ済み 2026-10-26）。404・noindex・robots.txt対応済み、ヒーロー・プロフィール・SNS・メタ情報・作品3点・ニュース3件を反映。残りの素材反映を継続中 |
 | B（Notion連携） | ⏸ 一時停止中。再開の前提として、Kross要件に合わせたNotion DB定義をユーザーが作成中（2026-10-23〜） |
 | C（CI/CD） | ✅ MVP完了（2026-10-23）。`dev`へのpushで`asnomi-kross-mock/`をビルド→S3 sync→Invalidationし、`dev.asnomi.com`へのデプロイ成功（PR #6, #7。`deploy-dev.yml`）。`main`向け分岐・cron・Notion同期は後続 |
-| D（インフラ/Terraform） | ✅ dev環境のMVP対応完了。🔄 本番（asnomi.com）の構成調査と移行計画インプットの整理に着手（依頼済み 2026-10-26。本番環境は変更しない、importはplan確認まで） |
+| D（インフラ/Terraform） | ✅ dev環境のMVP対応完了。✅ 本番（asnomi.com）の構成調査・移行計画インプット完了（2026-10-26。詳細は非公開資料）。🔄 移行前の事前対応を依頼済み（非公開資料の決定事項参照） |
+
+**🚀 本番移行の方針（2026-10-26決定。詳細は非公開資料、公開できる方針は設計書トラックD 9章）**
+- 新しいS3バケット＋新しいCloudFrontディストリビューションを並行して作り、代替ドメインを付け替える。現行バケットは旧サイトの保管庫として残す。
+- 旧サイトのURLはまず全て残し、新サイトに対応ページができたものから順にリダイレクトする。`www.asnomi.com` は作らない。
+- 本番ブランチは `main`（ブランチ戦略.mdを `master` から修正）。`prod` Environment に承認者を設定する。
+- **切り替えの判断基準: Notion連携が動作し、作品が一通り掲載された時点。** 切り替え時のサイト一時停止は許容する。
+- 旧サイトのバックアップはユーザーのローカルに取得済み。
+- 移行計画（手順・リハーサル・切り戻し）は、判断基準を満たす見込みが立った段階で作成する。
 
 **🎯 方針変更（2026-10-23）: MVP最優先 ＝「Krossモックを `dev.asnomi.com` にデプロイして見られる状態にする」**
 - Notion連携（トラックB）はこのゴールに不要のため一時停止。DB定義はKrossの要件（作品: title/date/image/categories(=種別)/description/本文、ニュース: title/date/image/description/本文、ヒーロー: params.banner）に合わせてユーザーが再検討する。下記Phase 1の新DB関連の記述はDB定義確定後に書き直す。
@@ -23,7 +31,7 @@
 - **クリティカルパス:** トラックD（CloudFront Functionでサブディレクトリindex解決）＋ トラックC（`dev`へのpushで ビルド→S3 sync→Invalidation する最小ワークフロー。Notion同期・cronは使わない）→ `dev.asnomi.com` で確認。
 - ~~OIDC信頼ポリシーの修正は後回し~~ → 当初方針を撤回し、**対応済み（2026-10-23）**。初回デプロイでAssumeRoleが失敗し、GitHubの`sub`が数値ID付き形式（`repo:asnomi@81574932/ReFactory@1346288783:…`）だったことが原因と判明。deployジョブは`environment: dev`を使い、信頼ポリシーは`repo:asnomi@81574932/ReFactory@1346288783:environment:dev`の完全一致に修正（設計書トラックD 6.3・6.5節）。値（Variables）はリポジトリ直下のまま利用。
 - **✅ MVPゴール達成（2026-10-23）**：`dev.asnomi.com` でKrossモックのトップ・`/works/`・`/news/` が200で表示されることを確認。
-- 🟡 **残課題（トラックA/C）：ビルド成果物に`404.html`が無い**ため、存在しないURIが404ページではなく403になる。CloudFront側は`/404.html`を返す設定済みなので、Hugo側で`404.html`を出力すれば解消する。
+- ~~🟡 残課題（トラックA/C）：ビルド成果物に`404.html`が無い~~ → ✅ トラックAが対応済み（PR #11、2026-10-23）。
 - CIビルドのブロッカー（✅ トラックCで解消済み・PR #6）: `themes/kross/` と `content/` がgit管理外、`package-lock.json` 未コミット、サイトルートが `asnomi-kross-mock/` 配下。
 
 ---
