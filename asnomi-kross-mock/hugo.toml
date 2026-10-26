@@ -48,8 +48,6 @@ font_secondary_type = "sans-serif" # [serif/sans-serif]
 # CSS Plugins
 [[params.plugins.css]]
 link = "plugins/themify-icons/icons.css"
-[[params.plugins.css]]
-link = "plugins/swiper/swiper-bundle.css"
 
 # JS Plugins
 # [[params.plugins.js]]
@@ -60,7 +58,6 @@ link = "plugins/cookie.js"
 link = "plugins/lazy-loader.js" 
 [[params.plugins.js]]
 link = "plugins/shuffle/shuffle.min.js"
-[[params.plugins.js]]
-link = "plugins/swiper/swiper-bundle.js"
+# Swiper（スライダー）はどのページでも使っていないため読み込まない（2026-10-26削除。約150KB削減）
 [[params.plugins.js]]
 link = "plugins/webfont/webfont-loader-2.js" 

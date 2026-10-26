@@ -25,7 +25,6 @@ const purgecss = require("@fullhuman/postcss-purgecss")({
     standard: [
       /^nav-bg$/, // スクロール時にヘッダーへ付く（テーマのscript.js）
       /dark/,
-      /^swiper-/,
       /collapsing/, // モバイルメニュー開閉中（Bootstrap Collapse）
       /show/, // モバイルメニュー展開時（Bootstrap Collapse）
       /^lb-/,
