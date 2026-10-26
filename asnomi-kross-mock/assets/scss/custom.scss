@@ -3,35 +3,6 @@
 // 「大胆な画像+コピー」に寄せたフルブリード写真ヒーローに差し替え（layouts/index.html 参照）
 
 // ---------------------------------------------
-// ページ表示時のディゾルブ（フェードイン）
-// 現行サイト(asnomi.com)と同じ演出: 2秒かけて表示。最初の1割は透明のまま待ってから浮かび上がる
-// ---------------------------------------------
-body {
-  animation: fade-in 2s;
-}
-
-@keyframes fade-in {
-  0% {
-    opacity: 0;
-  }
-
-  10% {
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
-// OSの「視差効果を減らす」等の設定をしている人には動きを付けない
-@media (prefers-reduced-motion: reduce) {
-  body {
-    animation: none;
-  }
-}
-
-// ---------------------------------------------
 // ヒーロー
 // ---------------------------------------------
 .hero-area-photo {
@@ -289,16 +260,10 @@ a.text-dark:hover {
 }
 
 // ---------------------------------------------
-// フォント（Adobe Fonts、現行サイトと同じ割り当て）
-// 本文・小見出し・メニュー・ボタンは vdl-yotag（hugo.toml の font_primary / font_secondary）、大見出し(h1)だけ ab-anzu
-// （テーマの .font-secondary クラスは !important でフォントを固定するため、h1 には付けない）
+// フォント（Adobe Fonts）
+// 見出し・本文・メニュー・ボタンは vdl-yotag（hugo.toml の font_primary / font_secondary）
+// ヘッダー左上のサイト名だけ ab-anzu（テーマの .font-secondary は !important でフォントを固定するため付けない）
 // ---------------------------------------------
-h1,
-.h1 {
-  font-family: ab-anzu, sans-serif;
-}
-
-// ヘッダー左上のサイト名も ab-anzu（.font-secondary は付けない）
 .navbar-brand .site-name {
   font-family: ab-anzu, sans-serif;
 }
