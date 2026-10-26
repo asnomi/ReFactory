@@ -37,11 +37,11 @@ font_scale = "1.205" # default is "majorThird": 1.25
 # go to https://fonts.google.com/ to find the font you want to use. select your font and copy only the bold part from the URL. and paste it here.
 # example: "Work+Sans:wght@400;500;600"
 font_icon = "themify" # https://themify.me/themify-icons
-# 現行サイトは自前フォント'OpenSauceOne'(Google Fontsに無し)。モックでは近似の代替としてWork Sansを暫定使用。
-# 本実装時は自前フォントの@font-face読み込みへの差し替えを検討(T2-2)。
-font_primary = "Work+Sans:wght@400;500;600"
+# フォントは Adobe Fonts（キット plc5kmg、現行サイトと同じ）を使う。読み込みは layouts/partials/essentials/head.html の埋め込みコード
+# ここでは書体名だけを指定する: 本文・小見出し・メニュー・ボタン = vdl-yotag（大見出し h1 の ab-anzu は custom.scss で指定）
+font_primary = "vdl-yotag"
 font_primary_type = "sans-serif" # [serif/sans-serif]
-font_secondary = "Work+Sans:wght@600;700"
+font_secondary = "vdl-yotag"
 font_secondary_type = "sans-serif" # [serif/sans-serif]
 
 ############################# Plugins ##############################
@@ -60,5 +60,4 @@ link = "plugins/lazy-loader.js"
 [[params.plugins.js]]
 link = "plugins/shuffle/shuffle.min.js"
 # Swiper（スライダー）はどのページでも使っていないため読み込まない（2026-10-26削除。約150KB削減）
-[[params.plugins.js]]
-link = "plugins/webfont/webfont-loader-2.js" 
+# webfont-loader（Google フォント等の読み込み部品）は、読み込み指示が無く実際には使われていなかったため外した（フォントは Adobe Fonts の埋め込みコードで読み込む） 
