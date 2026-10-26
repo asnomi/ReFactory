@@ -1,0 +1,17 @@
+{
+  "name": "notion-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "NotionのDBからHugoのcontent/とassets/images/を生成する同期スクリプト",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sync": "node src/index.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@notionhq/client": "^5.28.0"
+  }
+}
