@@ -54,6 +54,7 @@
         </div>
       </div>
       <div class="col-lg-11">
+        {{ with .Params.description }}<p class="lead mb-4">{{ . }}</p>{{ end }}
         <div class="content">{{.Content}}</div>
       </div>
     </div>
