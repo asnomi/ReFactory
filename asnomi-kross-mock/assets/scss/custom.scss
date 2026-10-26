@@ -297,3 +297,8 @@ h1,
 .h1 {
   font-family: ab-anzu, sans-serif;
 }
+
+// ヘッダー左上のサイト名も ab-anzu（.font-secondary は付けない）
+.navbar-brand .site-name {
+  font-family: ab-anzu, sans-serif;
+}
