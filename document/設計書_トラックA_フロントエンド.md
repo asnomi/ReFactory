@@ -6,7 +6,7 @@
 
 **対応要件:** F-301, F-302, F-303, F-304
 
-**Document Version:** 1.9（現行サイトの雰囲気への寄せ込み（ディゾルブ・余白・お問い合わせ・配色）を反映）
+**Document Version:** 1.10（Adobe Fontsへのフォント変更を反映）
 
 **Date:** 2026-08-25（初版）／2026-08-26改訂（トラックBの[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md)に合わせ、コンテンツ出力パスを`content/works/`・`content/news/`に統一。詳細は7.5節）／2026-10-23改訂（404.html出力不具合の修正、検証環境のnoindex/robots.txt対応。詳細は7.6節）
 
@@ -318,13 +318,24 @@ Notion連携までの暫定運用として、[運用_サイト内容の更新手
 | # | 内容 | 主な変更箇所 |
 | --- | --- | --- |
 | 1 | **ページ表示時のディゾルブ**: 現行サイトと同じCSSアニメーション（2秒、最初の1割は透明のまま）を`body`に適用。OSで「視差効果を減らす」等を設定している人には動きを付けない。効果が重なるKross標準の読み込み中アニメーション（preloader）は無効化 | `custom.scss`、`params.toml`の`[preloader]` |
-| 2 | **余白を約3pt(4px)に**: 作品ギャラリー（トップ・一覧）とお知らせ（トップ・一覧）の隙間を24px→4pxに詰め（`.grid-tight`）、これらの区画だけ表示幅の上限を1140px→1600pxに広げて画像・カードを大きく表示（`.container-wide`）。文章ページは標準幅のまま。お知らせカードは同じ行で高さをそろえる | `custom.scss`、`layouts/index.html`、`layouts/works/list.html`、`layouts/_default/list.html`（新規）、`layouts/_default/post.html` |
+| 2 | **余白を約3pt(4px)に**: 作品ギャラリー（トップ・一覧）とお知らせ（トップ・一覧）の隙間を24px→4pxに詰め（`.grid-tight`）、これらの区画だけ表示幅の上限を1140px→1600pxに広げて画像・カードを大きく表示（`.container-wide`）。文章ページは標準幅のまま。お知らせカードの高さそろえは7.14で取り消し | `custom.scss`、`layouts/index.html`、`layouts/works/list.html`、`layouts/_default/list.html`（新規）、`layouts/_default/post.html` |
 | 3 | **お問い合わせフォームの削除**: フッターはお問い合わせの案内（お問い合わせページへのリンク）とコピーライトのみ。お問い合わせページに案内文とメールアドレス、SNS一覧を表示。`contact_form_action`は削除 | `footer.html`、`layouts/_default/contact.html`、`content/contact.md`、`params.toml` |
 | 5 | **配色をグレー・ターコイズ・ピンクの淡い色合いに**: 主色=淡いターコイズ`#9fd8d1`、差し色=淡いピンク`#f3a7b8`、本文`#5d6468`／見出し`#3b4246`、フッター背景`#f2f4f4`。淡い背景の上は白文字だと読めないため濃いグレーの文字にし、トップの写真の上（ヘッダーが透明な状態）だけ白文字。リンク色は濃いめのターコイズ`#3c9a92` | `hugo.toml`の`params.variables`、`custom.scss`の「配色」、`header.html`、`page-title.html` |
 
 - 色の微調整は原則`hugo.toml`の`params.variables`だけで行える（リンク色のみ`custom.scss`の`$link-hover`）。
 - 依頼4（Adobe Fontsの埋め込み）は別途対応予定。
 - 検証: 開発サーバーでPC幅（1440px）・スマホ幅（390px）を目視確認、PurgeCSS有効の本番ビルドで追加したスタイルが残ることを確認。
+
+---
+
+### 7.14 フォントの変更（Adobe Fonts）・お知らせカードの高さそろえの取り消し（2026-10-26）
+
+- **フォント**: 現行サイトと同じAdobe Fontsのキット`plc5kmg`を、現行と同じJavaScript埋め込みコードで読み込む（`layouts/partials/essentials/head.html`）。日本語フォントは必要な文字だけを読み込む方式（動的サブセット）のため、JS埋め込みが必要。キットIDは公開されたHTMLに出る値のため、公開リポジトリに含めて問題ない。
+- **割り当て**（現行と同じ）: 本文・小見出し（h2〜h6）・メニュー・ボタン＝`vdl-yotag`（`hugo.toml`の`font_primary`/`font_secondary`）、大見出し（h1）＝`ab-anzu`（`custom.scss`）。テーマの`.font-secondary`クラスは`!important`でフォントを固定するため、h1には付けない。
+- キットに含まれる太さは`vdl-yotag`が500、`ab-anzu`が400のみのため、太字の見出し等はブラウザが疑似的に太くして表示する（現行サイトと同じ挙動）。
+- テーマ同梱の`webfont-loader`（Googleフォント等の読み込み部品）は読み込み指示が無く使われていなかったため外した。それまで設定していた`Work Sans`は実際には読み込まれておらず、端末の標準フォントで表示されていた。
+- 手元（localhost）でキットのフォントが読み込まれること（`wf-active`）を確認済み。
+- お知らせカードの高さそろえ（7.13の2）は、確認の結果不要となったため取り消した。
 
 ---
 
