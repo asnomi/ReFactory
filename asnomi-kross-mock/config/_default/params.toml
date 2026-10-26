@@ -39,7 +39,7 @@ theme_copyright = false
 
 # Preloader
 [preloader]
-# 読み込み中アニメーション（全画面のローディング画像）。ページ表示時のディゾルブ（custom.scss）と重なるため無効化
+# 読み込み中アニメーション（全画面のローディング画像）。表示の速さを活かすため無効化（読み込み完了まで画面が白く覆われるため）
 enable = false
 preloader = "images/preloader.gif" # use jpg, png, svg or gif format.
 
