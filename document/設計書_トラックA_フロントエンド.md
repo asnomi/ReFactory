@@ -331,7 +331,7 @@ Notion連携までの暫定運用として、[運用_サイト内容の更新手
 ### 7.14 フォントの変更（Adobe Fonts）・お知らせカードの高さそろえの取り消し（2026-10-26）
 
 - **フォント**: 現行サイトと同じAdobe Fontsのキット`plc5kmg`を、現行と同じJavaScript埋め込みコードで読み込む（`layouts/partials/essentials/head.html`）。日本語フォントは必要な文字だけを読み込む方式（動的サブセット）のため、JS埋め込みが必要。キットIDは公開されたHTMLに出る値のため、公開リポジトリに含めて問題ない。
-- **割り当て**（現行と同じ）: 本文・小見出し（h2〜h6）・メニュー・ボタン＝`vdl-yotag`（`hugo.toml`の`font_primary`/`font_secondary`）、大見出し（h1）＝`ab-anzu`（`custom.scss`）。テーマの`.font-secondary`クラスは`!important`でフォントを固定するため、h1には付けない。
+- **割り当て**（現行と同じ）: 本文・小見出し（h2〜h6）・メニュー・ボタン＝`vdl-yotag`（`hugo.toml`の`font_primary`/`font_secondary`）、大見出し（h1）とヘッダー左上のサイト名＝`ab-anzu`（`custom.scss`。サイト名は2026-10-26追加）。テーマの`.font-secondary`クラスは`!important`でフォントを固定するため、h1には付けない。
 - キットに含まれる太さは`vdl-yotag`が500、`ab-anzu`が400のみのため、太字の見出し等はブラウザが疑似的に太くして表示する（現行サイトと同じ挙動）。
 - テーマ同梱の`webfont-loader`（Googleフォント等の読み込み部品）は読み込み指示が無く使われていなかったため外した。それまで設定していた`Work Sans`は実際には読み込まれておらず、端末の標準フォントで表示されていた。
 - 手元（localhost）でキットのフォントが読み込まれること（`wf-active`）を確認済み。
