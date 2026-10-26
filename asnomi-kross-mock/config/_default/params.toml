@@ -118,46 +118,6 @@ expire_days = 2
 button = "I Accept"
 content = "This site uses cookies. By continuing to use this website, you agree to their use."
 
-# Client Logo Slider 
-[[logo_slider]]
-URL = "http://examplesite.com"
-logo = "images/clients-logo/client-logo-1.png"
-
-[[logo_slider]]
-URL = "#"
-logo = "images/clients-logo/client-logo-2.png"
-
-[[logo_slider]]
-URL = "http://examplesite.com"
-logo = "images/clients-logo/client-logo-3.png"
-
-[[logo_slider]]
-URL = "#"
-logo = "images/clients-logo/client-logo-4.png"
-
-[[logo_slider]]
-URL = "http://examplesite.com"
-logo = "images/clients-logo/client-logo-5.png"
-
-[[logo_slider]]
-URL = "#"
-logo = "images/clients-logo/client-logo-1.png"
-
-[[logo_slider]]
-URL = "http://examplesite.com"
-logo = "images/clients-logo/client-logo-2.png"
-
-[[logo_slider]]
-URL = "#"
-logo = "images/clients-logo/client-logo-3.png"
-
-[[logo_slider]]
-URL = "http://examplesite.com"
-logo = "images/clients-logo/client-logo-4.png"
-
-[[logo_slider]]
-URL = "#"
-logo = "images/clients-logo/client-logo-5.png"
 
 ############################# social site ########################
 # 表示順＝ヒーロー・お問い合わせページでの並び順。
