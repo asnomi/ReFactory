@@ -15,7 +15,7 @@
 | A（フロント/Kross） | 🔄 実素材への差し替え進行中（PR #11〜#16 マージ済み 2026-10-26）。404・noindex・robots.txt対応済み、ヒーロー・プロフィール・SNS・メタ情報・作品3点・ニュース3件を反映。残りの素材反映を継続中 |
 | B（Notion連携） | ⏸ 一時停止中。再開の前提として、Kross要件に合わせたNotion DB定義をユーザーが作成中（2026-10-23〜） |
 | C（CI/CD） | ✅ MVP完了（2026-10-23）。`dev`へのpushで`asnomi-kross-mock/`をビルド→S3 sync→Invalidationし、`dev.asnomi.com`へのデプロイ成功（PR #6, #7。`deploy-dev.yml`）。`main`向け分岐・cron・Notion同期は後続 |
-| D（インフラ/Terraform） | ✅ dev環境のMVP対応完了（CloudFront Functionでサブディレクトリindex解決、OIDC信頼ポリシーを実トークン形式に修正・apply済み 2026-10-23）。次は本番Terraform化等（時期未定） |
+| D（インフラ/Terraform） | ✅ dev環境のMVP対応完了。🔄 本番（asnomi.com）の構成調査と移行計画インプットの整理に着手（依頼済み 2026-10-26。本番環境は変更しない、importはplan確認まで） |
 
 **🎯 方針変更（2026-10-23）: MVP最優先 ＝「Krossモックを `dev.asnomi.com` にデプロイして見られる状態にする」**
 - Notion連携（トラックB）はこのゴールに不要のため一時停止。DB定義はKrossの要件（作品: title/date/image/categories(=種別)/description/本文、ニュース: title/date/image/description/本文、ヒーロー: params.banner）に合わせてユーザーが再検討する。下記Phase 1の新DB関連の記述はDB定義確定後に書き直す。
