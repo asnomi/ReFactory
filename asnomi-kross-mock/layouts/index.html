@@ -205,57 +205,8 @@
 {{ end }}
 
 
-{{ if .Params.testimonial.enable }}
-{{ with .Params.testimonial }}
-<!-- testimonial -->
-<section class="section bg-primary position-relative testimonial-bg-shapes">
-  <div class="container">
-    <div class="row">
-      <div class="col-12 text-center">
-        <h2 class="section-title text-white mb-5">{{ .title | markdownify }}</h2>
-      </div>
-      <div class="col-lg-10 mx-auto swiper testimonial-slider">
-        <div class="swiper-wrapper">
-          {{ range .item }}
-          <div class="swiper-slide">
-            <div class="text-center testimonial-content">
-              <i class="ti-quote-right text-white icon mb-4 d-inline-block"></i>
-              <p class="text-white mb-4">{{.content | markdownify}}</p>
-              {{ partial "image.html" (dict "Src" .image "Alt" "client-image" "Class" `rounded-circle mb-4
-              d-inline-block`)
-              }}
-              <h3 class="h5 text-white">{{.name }}</h3>
-              <span class="fs-6 text-secondary d-block text-light mb-4 designation">{{ .designation }}</span>
-            </div>
-          </div>
-          {{ end }}
-        </div>
-        <div class="swiper-pagination"></div>
-      </div>
-    </div>
-  </div>
-  <!-- bg shapes -->
-  {{ partial "image.html" (dict "Src" "images/backgrounds/map.png" "Alt" "map" "Class" `bg-map`) }}
-  {{ partial "image.html" (dict "Src" "images/illustrations/dots-group-v.svg" "Alt" "map" "Class" `bg-shape-1`) }}
-  {{ partial "image.html" (dict "Src" "images/illustrations/leaf-orange.svg" "Alt" "map" "Class" `bg-shape-2`) }}
-  {{ partial "image.html" (dict "Src" "images/illustrations/dots-group-sm.svg" "Alt" "map" "Class" `bg-shape-3`) }}
-  {{ partial "image.html" (dict "Src" "images/illustrations/leaf-pink-round.svg" "Alt" "map" "Class" `bg-shape-4`) }}
-  {{ partial "image.html" (dict "Src" "images/illustrations/leaf-cyan.svg" "Alt" "map" "Class" `bg-shape-5`) }}
-</section>
-<!-- /testimonial -->
-{{ end }}
-{{ end }}
 
 
-{{ if .Params.clients_logo_slider.enable }}
-<!-- client logo slider -->
-<section class="section pb-0">
-  <div class="container">
-    {{ partial "components/client-slider.html" . }}
-  </div>
-</section>
-<!-- /client logo slider -->
-{{ end }}
 
 {{ if .Params.blog.enable }}
 <!-- blog -->
