@@ -267,3 +267,18 @@ a.text-dark:hover {
 .navbar-brand .site-name {
   font-family: ab-anzu, sans-serif;
 }
+
+// ---------------------------------------------
+// 作品ページ（layouts/works/single.html）
+// ---------------------------------------------
+// 販売先ボタン（BOOTH・メロンブックス・配信サイト）
+.shop-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+// 本文の画像キャプション（Bootstrap標準の色ではなく、サイトの文字色に合わせる）
+.content figcaption {
+  color: $text-color;
+}
