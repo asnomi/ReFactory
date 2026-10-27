@@ -81,10 +81,12 @@ terraform/
 │       ├── variables.tf
 │       └── outputs.tf
 ├── envs/
-│   └── dev/                 # 検証環境の実体（S3リモートバックエンド管理）
-│       ├── main.tf
-│       ├── variables.tf
-│       └── outputs.tf
+│   ├── dev/                 # 検証環境の実体（S3リモートバックエンド管理）
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   ├── prod/                # 本番（asnomi.com）。9章の方針どおり新しいバケット・ディストリビューションを並行作成
+│   └── rehearsal/           # ドメイン付け替えのリハーサル用の一時環境（リハーサル後にdestroy）
 └── modules/
     └── static-site/          # 再利用可能モジュール（S3+CloudFront+ACM+DNS+IAMロール）
         ├── versions.tf
@@ -97,7 +99,7 @@ terraform/
         └── outputs.tf
 ```
 
-`modules/static-site` は環境名・ドメイン名等をパラメータ化しているため、`envs/prod/` からも同じモジュールを呼び出せる。本番の移行方針は9章で検討中。
+`modules/static-site` は環境名・ドメイン名等をパラメータ化しており、`envs/dev`・`envs/prod`・`envs/rehearsal` から同じモジュールを呼び出す。本番向けに追加した入力は9.3節を参照。
 
 ---
 
@@ -251,7 +253,7 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 1. ~~既存オーファンリソース（`EHAFG1OU9KCD7`）の削除実行~~ → ✅ 2026-08-30実施完了（6章参照）
 2. ~~`terraform apply`の実行~~ → ✅ 2026-08-30実施完了（bootstrap・global/github-oidc・envs/devすべて適用済み、6章参照）
 3. ~~GitHubの`dev` Environment Variables登録~~ → トラックCは値をリポジトリ直下のVariables（`vars.*`）から読む実装（6.3節）。6.2節の「Environment Variables」は「リポジトリVariables」と読み替える。**ただしGitHubの`dev` Environment自体の作成と、Deployment branchesを`dev`のみにする設定は必須（ユーザーがUIから実施）**
-4. 本番環境（`asnomi.com`）のTerraform化 → 移行方針を9章に記載（2026-10-26。詳細は非公開資料）。`terraform/envs/prod/`は移行計画の確定後に追加する
+4. 本番環境（`asnomi.com`）のTerraform化 → 移行方針を9章に記載（2026-10-26。詳細は非公開資料）。`terraform/envs/prod/`を2026-10-27に追加（9.3節）
 5. 要件定義書の「asnoni.com」表記は実際のドメイン「asnomi.com」との誤字と判断したが、要件定義書自体の訂正はPJ管理／レビューセッションの判断に委ねる
 6. Terraformバックエンド設定の`dynamodb_table`パラメータがTerraform 1.10+で非推奨（新方式`use_lockfile`推奨）という警告が出る。動作に支障はないが、将来のTerraformバージョンアップ時に見直しを検討する
 7. 将来`prod`環境を追加する際は、`envs/prod`の`github_oidc_subjects`を`repo:asnomi@81574932/ReFactory@1346288783:environment:prod`とし、GitHubの`prod` EnvironmentのDeployment branchesを本番ブランチのみに設定する（モジュールの変更は不要）
@@ -283,3 +285,26 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 - `terraform/envs/prod/` は、移行計画の確定後に、上記の方針に沿った最終形のコードとして追加する。
 - 本番用のOIDCロールは、`environment:prod` の `sub` に限定し、新しいバケット・ディストリビューションへの最小権限のみを付与する（現行のバケットへの権限は付けない）。
 - 切り替え手順は、事前にdev環境でリハーサルする。
+
+### 9.3 Terraformの構成（2026-10-27）
+
+**`modules/static-site` に追加した入力**（いずれも既定値は従来の動作のままで、`envs/dev` のplanは差分0件。`count` の追加に伴うアドレスの移動は `moved` ブロックで吸収）
+
+| 入力 | 既定値 | 用途 |
+| --- | --- | --- |
+| `attach_domain` | `true` | `false` の間は代替ドメインとA/AAAAレコードを付けず、CloudFrontの既定ドメイン・既定証明書だけで構築する（並行稼働・事前確認用） |
+| `acm_certificate_arn` | `null` | 既存の証明書を使う場合に指定する。指定時は証明書を新規発行しない |
+| `legacy_origin` | `null` | 旧サイトのファイルを既存のバケットから配信する2つ目のオリジンと、そのパスのビヘイビア。既存バケット側の設定は変更しない |
+| `oac_name` | `null` | OACの名前（同じドメイン名で2つ目のディストリビューションを作るリハーサル用） |
+| `create_deploy_role` | `true` | GitHub Actions用のデプロイロールを作るか（リハーサル用の一時環境では作らない） |
+
+**`envs/prod`**
+- 新しいバケット（`asnomi-prod-site-566759952246`）・ディストリビューション・OAC・CloudFront Function（`prod-index-rewrite`）・デプロイロール（`github-actions-prod-deploy`、`sub` は `environment:prod`）を作成する。
+- 証明書は既存の `asnomi.com` の証明書をデータソースで参照する。
+- 既存のディストリビューション・バケットはimportせず、このstateでは管理しない。
+- `attach_domain` は `false` で構築し、ドメインの付け替え作業で `true` に変更する。このとき、既存の `asnomi.com` のAレコードは `import` ブロックでstateに取り込んでから新しいディストリビューションへ向ける（上書きの許可ではなく、planで変更前後の向き先を確認できる方式を採る）。AAAAレコードは新規作成する。
+- 旧サイトのパスは `legacy_path_patterns` で管理し、新サイトに対応するページができたものから順に外す。
+
+**`envs/rehearsal`**
+- `dev.asnomi.com` の付け替えを通しで試すための一時環境。`envs/dev` のディストリビューションを「旧」、ここで作るディストリビューションを「新」に見立てる。
+- 証明書は `envs/dev` で発行済みのものを参照し、デプロイロールは作らない。リハーサル後に `terraform destroy` で削除する。
