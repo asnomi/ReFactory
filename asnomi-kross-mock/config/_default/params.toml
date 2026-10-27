@@ -158,3 +158,13 @@ badge = "P"
 title = "TuneCore Japan"
 link = "https://www.tunecore.co.jp/artists/asnomi"
 badge = "TC"
+
+[[social]]
+title = "Tumblr"
+link = "https://asnomi.tumblr.com/"
+icon = "ti-tumblr"
+
+[[social]]
+title = "GitHub"
+link = "https://github.com/asnomi"
+icon = "ti-github"
