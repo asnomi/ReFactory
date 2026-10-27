@@ -6,9 +6,9 @@
 
 **対応要件:** F-204, NF-101, NF-202
 
-**Document Version:** 0.4（OIDCのsubを数値ID付き・Environment形式に修正、6.3節を実態に合わせ改訂、6.5節追加）
+**Document Version:** 0.5（9章「移行計画」を追加）
 
-**Date:** 2026-08-30（初版）／2026-08-30改訂（terraform apply実行完了、実機構築結果を反映）／2026-10-23改訂（6.3〜6.4節追加）／2026-10-23再改訂（AssumeRole失敗の障害対応を反映）
+**Date:** 2026-08-30（初版）／2026-08-30改訂（terraform apply実行完了、実機構築結果を反映）／2026-10-23改訂（6.3〜6.4節追加）／2026-10-23再改訂（AssumeRole失敗の障害対応を反映）／2026-10-26改訂（9章追加）
 
 ---
 
@@ -97,7 +97,7 @@ terraform/
         └── outputs.tf
 ```
 
-`modules/static-site` は環境名・ドメイン名等をパラメータ化しているため、将来的に `envs/prod/` を追加すれば本番環境もTerraform管理へ移行できる（本タスクのスコープ外・今回は作成しない）。
+`modules/static-site` は環境名・ドメイン名等をパラメータ化しているため、`envs/prod/` からも同じモジュールを呼び出せる。本番の移行方針は9章で検討中。
 
 ---
 
@@ -251,7 +251,35 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 1. ~~既存オーファンリソース（`EHAFG1OU9KCD7`）の削除実行~~ → ✅ 2026-08-30実施完了（6章参照）
 2. ~~`terraform apply`の実行~~ → ✅ 2026-08-30実施完了（bootstrap・global/github-oidc・envs/devすべて適用済み、6章参照）
 3. ~~GitHubの`dev` Environment Variables登録~~ → トラックCは値をリポジトリ直下のVariables（`vars.*`）から読む実装（6.3節）。6.2節の「Environment Variables」は「リポジトリVariables」と読み替える。**ただしGitHubの`dev` Environment自体の作成と、Deployment branchesを`dev`のみにする設定は必須（ユーザーがUIから実施）**
-4. 本番環境（`asnomi.com`）のTerraform化は本タスクのスコープ外。将来対応する場合は`envs/prod/`を追加する形で本書のモジュールを再利用できる
+4. 本番環境（`asnomi.com`）のTerraform化 → 移行方針を9章に記載（2026-10-26。詳細は非公開資料）。`terraform/envs/prod/`は移行計画の確定後に追加する
 5. 要件定義書の「asnoni.com」表記は実際のドメイン「asnomi.com」との誤字と判断したが、要件定義書自体の訂正はPJ管理／レビューセッションの判断に委ねる
 6. Terraformバックエンド設定の`dynamodb_table`パラメータがTerraform 1.10+で非推奨（新方式`use_lockfile`推奨）という警告が出る。動作に支障はないが、将来のTerraformバージョンアップ時に見直しを検討する
 7. 将来`prod`環境を追加する際は、`envs/prod`の`github_oidc_subjects`を`repo:asnomi@81574932/ReFactory@1346288783:environment:prod`とし、GitHubの`prod` EnvironmentのDeployment branchesを本番ブランチのみに設定する（モジュールの変更は不要）
+
+---
+
+## 9. 移行計画
+
+本番（`asnomi.com`）を、devと同じTerraform管理・GitHub Actionsデプロイの構成へ移行する。
+
+**現行構成の調査結果・移行計画の詳細は、セキュリティ上の理由から本リポジトリには記載せず、非公開資料で別途管理する。** 本章には、公開しても差し支えない方針のみを記載する。
+
+### 9.1 移行方針（2026-10-26決定）
+
+| 項目 | 方針 |
+| --- | --- |
+| S3 | 新しいバケットを作成して配信する。現行のバケットは旧サイトの保管庫として当面残す（新しいワークフローは `s3 sync --delete` のため、現行バケットへはデプロイしない） |
+| CloudFront | 新しいディストリビューションを並行して作成し、事前に確認したうえで代替ドメイン `asnomi.com` を付け替える |
+| ACM | `asnomi.com` の既存の証明書を引き続き使う |
+| Route53 | `asnomi.com` のA/AAAAレコードだけを切り替える。それ以外のレコードは変更しない |
+| 旧サイトのURL | 旧ファイルをまず全て残して配信し、新サイトに対応するページができたものから順にリダイレクトする |
+| `www.asnomi.com` | 作らない（現状維持） |
+| 本番ブランチ | `main`。GitHubの `prod` Environment（Deployment branchesは `main` のみ、承認者あり）経由でデプロイする |
+| 切り替えの判断基準 | Notion連携が動作し、作品が一通り掲載された時点 |
+| 切り替え時の停止 | サイトの一時停止を許容する |
+
+### 9.2 実装上の前提
+
+- `terraform/envs/prod/` は、移行計画の確定後に、上記の方針に沿った最終形のコードとして追加する。
+- 本番用のOIDCロールは、`environment:prod` の `sub` に限定し、新しいバケット・ディストリビューションへの最小権限のみを付与する（現行のバケットへの権限は付けない）。
+- 切り替え手順は、事前にdev環境でリハーサルする。
