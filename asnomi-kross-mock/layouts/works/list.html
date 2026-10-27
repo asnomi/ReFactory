@@ -39,11 +39,11 @@
     </script>
     <div class="row grid-tight shuffle-wrapper">
       {{ range .RegularPages }}
-      {{/* PCは4列・スマホ等は2列（トップページの作品欄は表示件数6件に合わせて3列のまま） */}}
+      {{/* PCは4列・スマホ等は2列（トップページの作品欄と同じ） */}}
       <div class="col-lg-3 col-6 mb-4 shuffle-item"
         data-groups="[{{range $index, $element:= .Params.categories }}{{if ne $index 0}},{{end}}&quot;{{. | urlize}}&quot;{{ end }}]">
         <div class="position-relative rounded hover-wrapper"> 
-          {{ partial "image.html" (dict "Src" .Params.image "Alt" .Title  "Class" `rounded w-100 d-block`) }}
+          {{ partial "works/thumb.html" . }}
           <div class="hover-overlay">
             <div class="hover-content">
               <p class="text-white font-weight-bold mb-3 px-3">{{ .Title }}</p>

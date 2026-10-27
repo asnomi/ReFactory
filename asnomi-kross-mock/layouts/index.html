@@ -185,10 +185,10 @@
     <div class="row grid-tight shuffle-wrapper">
       {{ $item:= .Params.portfolio.item_show }}
       {{ range first $item (where .Site.RegularPages "Section" "works") }}
-      <div class="col-lg-4 col-6 mb-4 shuffle-item">
+      {{/* PCは4列・スマホ等は2列（作品ギャラリーと同じ） */}}
+      <div class="col-lg-3 col-6 mb-4 shuffle-item">
         <div class="position-relative rounded hover-wrapper">
-          {{ partial "image.html" (dict "Src" .Params.image "Alt" .Title "Class" `rounded w-100 d-block`)
-          }}
+          {{ partial "works/thumb.html" . }}
           <div class="hover-overlay">
             <div class="hover-content">
               <p class="text-white font-weight-bold mb-3 px-3">{{ .Title }}</p>
