@@ -51,6 +51,10 @@ maxAge = "720h"
 [markup.goldmark.renderer]
 unsafe = true
 
+# 画像だけの段落を <p> で囲まない（layouts/_markup/render-image.html が <figure> を出すため）
+[markup.goldmark.parser]
+wrapStandAloneImageWithinParagraph = false
+
 [markup.highlight]
 style = 'monokai' # see https://xyproto.github.io/splash/docs/all.html
 
