@@ -278,8 +278,9 @@ a.text-dark:hover {
   gap: 0.5rem;
 }
 
-// 販売先ボタンの色: ピンク地に濃いグレーの文字。他のボタン（.btn-primary）には影響させないよう専用のクラスにする
-.btn.btn-shop {
+// アクセント色のボタン（販売先ボタン・お知らせの「続きを読む」）: ピンク地に濃いグレーの文字
+// 他のボタン（.btn-primary: 絞り込み等）には影響させないよう専用のクラスにする
+.btn.btn-accent {
   background: $color-secondary;
   color: $text-dark;
 
@@ -289,6 +290,18 @@ a.text-dark:hover {
     background: lighten($color-secondary, 6%);
     color: $text-dark;
   }
+}
+
+// カバー画像が無い作品のサムネイル（作品名だけを出す）
+.work-noimage {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  background: $light;
+  color: $text-dark;
 }
 
 // 本文の画像キャプション（Bootstrap標準の色ではなく、サイトの文字色に合わせる）
