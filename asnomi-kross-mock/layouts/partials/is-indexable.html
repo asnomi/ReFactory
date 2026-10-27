@@ -1,7 +1,0 @@
-{{- /*
-  検索エンジンにインデックスさせてよいビルドか判定する（true/false を返す）。
-  baseURL のホスト名が params.indexableHosts（本番ホスト）に含まれる場合のみ true。
-  dev.asnomi.com・localhost などは false（noindex / robots.txt 全拒否）になる。
-  本番の baseURL を変える場合は config/_default/params.toml の indexableHosts も更新すること。
-*/ -}}
-{{- return (in (site.Params.indexableHosts | default slice) (urls.Parse site.BaseURL).Host) -}}

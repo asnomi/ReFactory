@@ -1,2 +1,0 @@
-# CloudFront Functionのコードは改行コードもTerraformの差分対象になるため、OSに依らずLFに固定する
-terraform/**/*.js text eol=lf

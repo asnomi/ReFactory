@@ -1,9 +1,0 @@
-{{- /*
-  作品一覧・トップの作品欄のサムネイル。
-  カバー画像が無い作品は、壊れた画像の代わりに作品名を出す（原則カバー画像ありで掲載するため、最低限の表示）
-*/ -}}
-{{- with .Params.image -}}
-  {{ partial "image.html" (dict "Src" . "Alt" $.Title "Class" `rounded w-100 d-block`) }}
-{{- else -}}
-  <div class="work-noimage rounded">{{ .Title }}</div>
-{{- end -}}
