@@ -1,0 +1,89 @@
+# サイトのビルド（Notion同期 → 0件ガード → Hugo）。deploy-dev / deploy-prod から呼び出す共通部分。
+# 成果物（public/）は artifact `site` として呼び出し元のdeployジョブへ渡す。
+#
+# このワークフローはEnvironmentを使わない（AWS認証もしない）。Notionは読み取り専用のため、
+# dev以外のrefからの手動実行でも「同期 → ビルド」までの確認ができる。
+name: build-site
+
+on:
+  workflow_call:
+    inputs:
+      base_url:
+        description: 'Hugoのbaseurl（末尾スラッシュ付き）'
+        type: string
+        required: true
+    secrets:
+      NOTION_API_KEY:
+        required: true
+      NOTION_WORKS_DB_ID:
+        required: false # Variablesで持つ場合は不要
+      NOTION_NEWS_DB_ID:
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  HUGO_VERSION: 0.152.2
+  HUGO_ENVIRONMENT: production # PostCSS/PurgeCSS分岐（hugo.IsProduction）を確実に通す
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true # themes/kross（git submodule）
+
+      - uses: actions/setup-go@v5 # Hugo Modules(go.mod)用
+        with:
+          go-version: '1.23'
+          cache-dependency-path: asnomi-kross-mock/go.sum
+
+      - uses: actions/setup-node@v4 # Notion同期 と 本番ビルドのPostCSS/PurgeCSS用
+        with:
+          node-version: '24' # LTS。ローカルでの検証・各package-lock.jsonの生成と同一メジャー
+          cache: npm
+          cache-dependency-path: |
+            asnomi-kross-mock/package-lock.json
+            scripts/notion-sync/package-lock.json
+
+      - name: npm ci（サイト用。PostCSS/PurgeCSS）
+        working-directory: asnomi-kross-mock
+        run: npm ci
+
+      - name: npm ci（Notion同期用）
+        working-directory: scripts/notion-sync
+        run: npm ci
+
+      # 認証エラー・DB接続不可・環境変数の未設定は非ゼロ終了で、ここでジョブが止まる（後続のビルド・デプロイに進まない）。
+      # 1件ごとの変換・画像取得の失敗は警告だけで続行する（設計書_Notionデータ連携 2.4節）。
+      - name: Notion同期
+        working-directory: scripts/notion-sync
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_WORKS_DB_ID: ${{ secrets.NOTION_WORKS_DB_ID || vars.NOTION_WORKS_DB_ID }}
+          NOTION_NEWS_DB_ID: ${{ secrets.NOTION_NEWS_DB_ID || vars.NOTION_NEWS_DB_ID }}
+        run: npm run sync
+
+      # 同期結果が0件のまま進むと、後段の `s3 sync --delete` で公開中のコンテンツが消えるため、ここで止める。
+      - name: 0件ガード
+        run: node scripts/ci/check-sync-result.mjs
+
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
+
+      - name: Hugo build
+        working-directory: asnomi-kross-mock
+        run: hugo --gc --minify --baseURL "${{ inputs.base_url }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: asnomi-kross-mock/public/
+          include-hidden-files: true # .htaccess / .well-known を含める
+          if-no-files-found: error
+          retention-days: 3
