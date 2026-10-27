@@ -1,0 +1,40 @@
+{{- /*
+  作品ページの販売先（front matter の shops・sale_status。Notion同期が出力する）
+  - 販売終了: 「販売終了」と表示し、ボタンは出さない（URLが残っていても出さない）
+  - 販売先URLあり: 販売先ごとのボタンを並べる
+  - 販売中で販売先URLなし: 「イベント・直販のみ」と表示
+  - 販売状況が空で販売先URLもなし: 何も出さない
+*/ -}}
+{{- $status := .Params.sale_status -}}
+{{- $links := slice -}}
+{{- with .Params.shops -}}
+  {{- $shops := . -}}
+  {{- /* ボタンの並び順と表示名（キーは shops の中の名前） */ -}}
+  {{- range $shop := slice (dict "key" "booth" "label" "BOOTH") (dict "key" "melonbooks" "label" "メロンブックス") (dict "key" "streaming" "label" "配信サイト") -}}
+    {{- with index $shops $shop.key -}}
+      {{- $links = $links | append (dict "url" . "label" $shop.label) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if or (eq $status "販売終了") $links (eq $status "販売中") }}
+<div class="col-12 mb-5">
+  <div class="project-meta">
+    <i class="ti-shopping-cart"></i>
+    <div class="ms-3">
+      <h4>販売</h4>
+      {{- if eq $status "販売終了" }}
+      <p>販売終了</p>
+      {{- else if $links }}
+      <div class="shop-links">
+        {{- range $links }}
+        <a class="btn btn-primary btn-sm" href="{{ .url }}" target="_blank" rel="noopener">{{ .label }}</a>
+        {{- end }}
+      </div>
+      {{- else }}
+      <p>イベント・直販のみ</p>
+      {{- end }}
+    </div>
+  </div>
+</div>
+{{- end }}

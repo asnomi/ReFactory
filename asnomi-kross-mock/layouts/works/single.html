@@ -15,7 +15,7 @@
             <div class="project-meta">
               <i class="ti-calendar"></i>
               <div class="ms-3">
-                <h4>制作日</h4>
+                <h4>頒布日</h4>
                 <p>{{ .PublishDate.Format "2006年1月2日" }}</p>
               </div>
             </div>
@@ -40,6 +40,30 @@
               </div>
             </div>
           </div>
+          {{/* 価格: 数値で受け取り「1,500円」と表示。0円は「無料」（with だと0が「値なし」扱いになるため isset で判定） */}}
+          {{ if isset .Params "price" }}
+          <div class="col-sm-6 mb-5">
+            <div class="project-meta">
+              <i class="ti-tag"></i>
+              <div class="ms-3">
+                <h4>価格</h4>
+                <p>{{ if eq (float .Params.price) 0.0 }}無料{{ else }}{{ lang.FormatNumberCustom 0 .Params.price }}円{{ end }}</p>
+              </div>
+            </div>
+          </div>
+          {{ end }}
+          {{ with .Params.spec }}
+          <div class="col-sm-6 mb-5">
+            <div class="project-meta">
+              <i class="ti-book"></i>
+              <div class="ms-3">
+                <h4>仕様</h4>
+                <p>{{ . | htmlEscape | replaceRE "\r?\n" "<br>" | safeHTML }}</p>
+              </div>
+            </div>
+          </div>
+          {{ end }}
+          {{ partial "works/shops.html" . }}
           {{ with .Params.project_url}}
           <div class="col-sm-6 mb-5">
             <div class="project-meta">
