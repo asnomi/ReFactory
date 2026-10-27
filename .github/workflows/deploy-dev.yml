@@ -1,15 +1,19 @@
-# MVP版: dev ブランチの asnomi-kross-mock/ をビルドして dev.asnomi.com へデプロイする。
-# スコープ外（後続対応）: Notion同期 / cron / main(本番)デプロイ
+# dev ブランチを Notion 同期 → ビルド → dev.asnomi.com へデプロイする。
+# スコープ外（後続対応）: cron（scheduled-deploy.yml）/ main(本番)デプロイ（deploy-prod.yml）
 #
-# deployジョブは `environment: dev` を付ける。OIDC信頼ポリシーが
-# repo:asnomi/ReFactory:environment:dev 完全一致のため（トラックD設計書6.3）。
-# buildジョブはEnvironmentを使わず、dev以外のrefからの手動実行でもビルド確認ができる。
+# ビルド（同期・0件ガード・Hugo）は build-site.yml に共通化。deployジョブは `environment: dev` を付ける。
+# OIDC信頼ポリシーが repo:asnomi@…/ReFactory@…:environment:dev 完全一致のため（トラックD設計書6.3・6.5）。
 name: deploy-dev
 
 on:
   push:
     branches: [dev]
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'S3へデプロイする（OFFにすると、同期・0件ガード・ビルドの確認だけ行う）'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -18,55 +22,17 @@ concurrency:
   group: deploy-dev
   cancel-in-progress: false # デプロイ(S3 sync)の途中打ち切りを避け、後続は待機させる
 
-env:
-  HUGO_VERSION: 0.152.2
-  HUGO_ENVIRONMENT: production # PostCSS/PurgeCSS分岐（hugo.IsProduction）を確実に通す
-  SITE_URL: https://dev.asnomi.com/
-
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: asnomi-kross-mock # サイトルート（hugo.toml / package.json の場所）
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true # themes/kross（git submodule）
-
-      - uses: actions/setup-go@v5 # Hugo Modules(go.mod)用
-        with:
-          go-version: '1.23'
-          cache-dependency-path: asnomi-kross-mock/go.sum
-
-      - uses: actions/setup-node@v4 # 本番ビルドのPostCSS/PurgeCSS用
-        with:
-          node-version: '24' # LTS（20は2026-04にEOL。ローカルでの検証・package-lock.json生成と同一メジャー）
-          cache: npm
-          cache-dependency-path: asnomi-kross-mock/package-lock.json
-      - run: npm ci
-
-      - uses: peaceiris/actions-hugo@v3
-        with:
-          hugo-version: ${{ env.HUGO_VERSION }}
-          extended: true
-
-      - name: Hugo build
-        run: hugo --gc --minify --baseURL ${{ env.SITE_URL }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: site
-          path: asnomi-kross-mock/public/
-          include-hidden-files: true # .htaccess / .well-known を含める
-          if-no-files-found: error
-          retention-days: 3
+    uses: ./.github/workflows/build-site.yml
+    with:
+      base_url: https://dev.asnomi.com/
+    secrets: inherit
 
   deploy:
     needs: build
     # OIDCの信頼はEnvironment dev（Deployment branchesはdevのみ）に限定。dev以外のrefではデプロイしない
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/dev' && (github.event_name != 'workflow_dispatch' || inputs.deploy)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: dev

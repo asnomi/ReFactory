@@ -6,7 +6,7 @@
 
 **対応要件:** F-201, F-202, F-203, NF-101, NF-202
 
-**Document Version:** 0.6（MVP版: deployジョブに environment: dev を追加。9章参照）
+**Document Version:** 0.7（Notion同期の組み込みと0件ガードを追加。10章参照）
 
 > **📌 2026-10-23 方針変更:** 最優先は「Krossモックを `dev.asnomi.com` で見られる状態にする」こと。実装済みの最小ワークフローは [`.github/workflows/deploy-dev.yml`](../.github/workflows/deploy-dev.yml)（**9章**参照）。Notion同期・cron・本番(main)デプロイ・`prod` Environment分離は**後続扱い**で、2〜5章のフル版設計はその際のベースとして残す。なお当初の「Environmentを使わない」方針は、トラックDが信頼ポリシーをEnvironment形式へ変更したため撤回し、deployジョブに`environment: dev`を付けた（9.2参照）。
 
@@ -400,7 +400,7 @@ Secretsは全て **リポジトリSecrets**（Environment分離は現時点で�
 | 項目 | MVP版 | 後続（2〜5章のフル版） |
 | --- | --- | --- |
 | トリガー | `push`（`dev`）＋`workflow_dispatch` | ＋`schedule`(cron)、`main`向け本番デプロイ |
-| Notion同期 | なし（コミット済みダミーコンテンツをビルド） | あり（トラックB再開後） |
+| Notion同期 | MVP時点ではなし（10章で組み込み済み） | あり |
 | GitHub Environment | **deployジョブのみ `environment: dev`**（OIDC信頼ポリシーがEnvironment形式のため。2026-10-23訂正） | ＋`prod` Environment |
 | 値の参照元 | Variables（`vars.*`、現状はリポジトリ直下に登録済み。Environment変数に移しても同名で読める） | Environment別に分離 |
 | 対象環境 | `dev.asnomi.com` のみ | ＋本番 `asnomi.com` |
@@ -459,3 +459,50 @@ Secretsは全て **リポジトリSecrets**（Environment分離は現時点で�
 - **ローカルでの本番ビルド検証結果（2026-10-23）:** `npm ci` → `HUGO_ENVIRONMENT=production hugo --gc --minify --baseURL https://dev.asnomi.com/` が成功（31ページ、`/works/`・`/news/`・各詳細ページ出力、リンクが`https://dev.asnomi.com/`基準）。8章項目7で未実証だった「PostCSS経由の本番ビルドが通ること」は**ローカルでは解消**。CI上での実行は未確認。
 - **PurgeCSSによるCSS軽量化は未確認（要フォロー）:** インライン`<style>`は本番259KB（PostProcess後でHugoのminifyが効かず未圧縮）／development212KB（minify済み）で、本番の方が大きい。未使用Bootstrapセレクタの除去効果は確認できていない。MVP表示には影響しないため後回しとし、NF-102（高速表示）対応時にTrack Aと調整する。
 - GitHub Actionsの各アクションはメジャータグ指定（`@v4`等）。固定が必要になれば後続でSHAピンへ。
+
+
+---
+
+## 10. Notion同期の組み込みと0件ガード（2026-10-27〜）
+
+### 10.1 ワークフローの構成
+
+ビルド部分を再利用可能ワークフロー [`build-site.yml`](../.github/workflows/build-site.yml) に切り出し、デプロイ先ごとのワークフローから呼び出す。同期・ガード・Hugoの手順を1か所に持ち、dev と本番で差が出ないようにするため。
+
+```
+deploy-dev.yml ──┐
+                 ├─ uses: build-site.yml (base_url を渡す) → artifact `site` ─→ deployジョブ（environment付き）
+deploy-prod.yml ─┘
+```
+
+`build-site.yml` の手順: checkout → Go → Node 24 → `npm ci`（サイト／同期スクリプトの2か所）→ **Notion同期** → **0件ガード** → Hugo（`--baseURL`は呼び出し元が指定）→ artifactアップロード。Environmentは使わず、AWS認証もしない。
+
+- 設計書_Notionデータ連携 6.3節のとおり、同期は**リポジトリ直下の `scripts/notion-sync/`** で実行し（`npm ci` → `npm run sync`）、その後にサイトルート `asnomi-kross-mock/` でHugoを実行する。
+- 同期の生成物（`content/works|news/*.md`、`assets/images/works|news/`）はartifactの元になるだけで、コミットしない（CIのワークスペースは都度破棄）。
+
+### 10.2 Secrets / Variables
+
+| 名前 | 種類 | 備考 |
+| --- | --- | --- |
+| `NOTION_API_KEY` | **Secrets**（リポジトリ） | Integration Secret（Read contentのみ）。必須 |
+| `NOTION_WORKS_DB_ID` / `NOTION_NEWS_DB_ID` | SecretsまたはVariables（どちらでも可） | ワークフローは `secrets.X \|\| vars.X` で読む |
+
+AWS系の値（`S3_BUCKET_NAME` 等）は従来どおりdeployジョブのEnvironment／リポジトリVariablesから読む。buildジョブは `workflow_dispatch` を含めどのrefでも動くため、Notionのキーはリポジトリ直下に置く（Environmentには置かない）。
+
+### 10.3 0件ガード
+
+- **目的:** 同期結果が空（Notionの共有解除・公開フラグの全OFF・取得不具合など）のままビルド・デプロイすると、`aws s3 sync --delete` で公開中のコンテンツが消える。これを防ぐ。
+- **実装:** [`scripts/ci/check-sync-result.mjs`](../scripts/ci/check-sync-result.mjs)（単体テスト付き）。同期スクリプトの管理リスト（`.sync-manifest.json`）から件数を数える。管理リストは「同期が作ったファイル」だけを持つため、コミット済みのサンプルがあっても件数に混ざらず、**サンプルが残っていても0件を検知できる**。
+- **判定:** 作品が `MIN_WORKS`（既定1）未満なら**失敗**（デプロイに進まない）。ニュースは0件でも**警告のみ**（`MIN_NEWS`で厳格化可能）。管理リストが無い・壊れている場合も失敗。結果はジョブサマリーにも表示する。
+- **ガードしないこと:** 件数が急減した場合（例: 10件→2件）や、1行ごとの変換失敗（警告扱い）は検知しない。必要になれば前回件数との比較を後続で検討する。
+
+### 10.4 手動実行
+
+`deploy-dev` の `workflow_dispatch` に入力 `deploy`（既定ON）を追加した。OFFにすると、同期・0件ガード・ビルドまでを行いデプロイしない。Notionの更新内容を本番反映前に確認したいときに使う。
+
+> **注意（GitHubの仕様）:** `workflow_dispatch` は**既定ブランチ（`main`）にワークフローファイルが存在しないと実行できない**。`main` へ初回マージするまでは、Actionsの「Run workflow」や `gh workflow run` は使えず、`dev` へのpush（またはマージ）でのみ実行される。
+
+### 10.5 マージ前の確認事項
+
+- `NOTION_API_KEY`（と、Variablesにしない場合はDB ID2つ）を登録してからマージする。未登録のままマージすると、`dev` へのpushごとに同期ステップで失敗する（**デプロイは行われないため既存のdevサイトは壊れない**）。
+- サンプルと同じスラッグの行をNotionで公開ONにすると、同期側は警告して出力しない（サンプルを上書きしない）。サンプル削除は別PR（設計書_Notionデータ連携 6.2節）で行う。
