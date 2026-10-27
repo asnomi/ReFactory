@@ -20,7 +20,7 @@ export const WORKS = {
     category: { name: '種別', types: ['select'], required: false },
     description: { name: '説明文', types: ['rich_text'], required: false },
     image: { name: 'カバー画像', types: ['files', 'url'], required: false },
-    price: { name: '価格', types: ['rich_text'], required: false },
+    price: { name: '価格', types: ['number'], required: false },
     spec: { name: '仕様', types: ['rich_text'], required: false },
     booth: { name: 'BOOTH', types: ['url'], required: false },
     melonbooks: { name: 'メロンブックス', types: ['url'], required: false },
@@ -32,7 +32,6 @@ export const WORKS = {
 // 販売状況: Notionの選択肢 → 出力する値。ここに無い選択肢は警告して出力しない（設計書 1.2節）。
 export const SALE_STATUS_MAP = {
   販売中: '販売中',
-  直販のみ: '直販のみ',
   販売終了: '販売終了',
 };
 

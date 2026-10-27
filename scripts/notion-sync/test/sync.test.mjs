@@ -15,7 +15,7 @@ const rt = (t) => [{ plain_text: t, annotations: {} }];
 const worksProps = {
   タイトル: { type: 'title' }, スラッグ: { type: 'rich_text' }, 公開: { type: 'checkbox' }, 頒布日: { type: 'date' },
   種別: { type: 'select' }, 説明文: { type: 'rich_text' }, カバー画像: { type: 'files' },
-  価格: { type: 'rich_text' }, 仕様: { type: 'rich_text' }, BOOTH: { type: 'url' }, メロンブックス: { type: 'url' }, 配信URL: { type: 'url' }, 販売状況: { type: 'select' },
+  価格: { type: 'number' }, 仕様: { type: 'rich_text' }, BOOTH: { type: 'url' }, メロンブックス: { type: 'url' }, 配信URL: { type: 'url' }, 販売状況: { type: 'select' },
 };
 const newsProps = {
   タイトル: { type: 'title' }, スラッグ: { type: 'rich_text' }, 公開: { type: 'checkbox' }, 掲載日: { type: 'date' },
@@ -212,7 +212,7 @@ test('作品: 価格・仕様・販売先・販売状況を出力、不正な値
       workPage('1', {
         title: '全部', slug: 'full', cover: null,
         extra: {
-          価格: { type: 'rich_text', rich_text: rt('800円') },
+          価格: { type: 'number', number: 800 },
           仕様: { type: 'rich_text', rich_text: rt('A5 フルカラー\n28ページ') },
           BOOTH: url('https://x.booth.pm/items/1'),
           メロンブックス: url('http://melon.example/1'),
@@ -227,7 +227,7 @@ test('作品: 価格・仕様・販売先・販売状況を出力、不正な値
     const full = fs.readFileSync(path.join(dir, 'content/works/full.md'), 'utf8');
     assert.ok(
       full.includes(
-        'description: "説明"\nprice: "800円"\nspec: "A5 フルカラー\\n28ページ"\nshops:\n  booth: "https://x.booth.pm/items/1"\nsale_status: "販売中"\ndraft: false\n',
+        'description: "説明"\nprice: 800\nspec: "A5 フルカラー\\n28ページ"\nshops:\n  booth: "https://x.booth.pm/items/1"\nsale_status: "販売中"\ndraft: false\n',
       ),
       full,
     );

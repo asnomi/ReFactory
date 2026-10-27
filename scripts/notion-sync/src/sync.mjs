@@ -3,7 +3,7 @@
 import { downloadImage } from './images.mjs';
 import { renderDocument } from './frontmatter.mjs';
 import { blocksToMarkdown } from './markdown.mjs';
-import { readCheckbox, readDate, readHttpsUrl, readImageUrl, readSelect, readText, toHugoDate } from './props.mjs';
+import { readCheckbox, readDate, readHttpsUrl, readImageUrl, readNumber, readSelect, readText, toHugoDate } from './props.mjs';
 import { SALE_STATUS_MAP } from './schema.mjs';
 import { findDuplicates, validateSlug } from './slug.mjs';
 
@@ -202,7 +202,7 @@ export async function syncDatabase({ client, def, dbId, writer, log, fetchImpl =
               ['image', image],
               ['categories', category ? [category] : []],
               ['description', description],
-              ['price', readText(col(page, 'price'))],
+              ['price', readNumber(col(page, 'price'))],
               ['spec', readText(col(page, 'spec'))],
               ['shops', { map: [['booth', shopUrl('booth')], ['melonbooks', shopUrl('melonbooks')], ['streaming', shopUrl('streaming')]] }],
               ['sale_status', saleStatus],

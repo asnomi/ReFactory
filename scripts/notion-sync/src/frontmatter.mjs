@@ -4,7 +4,7 @@
 //   配列 → [ "a", "b" ] / { raw: '...' } → そのまま出力
 
 function renderValue(value) {
-  if (typeof value === 'boolean') return String(value);
+  if (typeof value === 'boolean' || typeof value === 'number') return String(value);
   if (Array.isArray(value)) return `[${value.map((v) => JSON.stringify(v)).join(', ')}]`;
   if (value && typeof value === 'object' && 'raw' in value) return value.raw;
   return JSON.stringify(String(value));
