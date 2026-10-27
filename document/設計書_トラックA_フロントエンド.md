@@ -205,7 +205,7 @@ MVPデプロイ（`dev.asnomi.com`）後に判明した2点への対応。いず
 | トップのabout文 | 「趣味でイラストレーター/シンガーソングライターしてる…」 | `content/_index.md`の`about.content` |
 | プロフィール | 公式プロフィール文（2026/3/28版）とモノクロのアイコン画像（`assets/images/profile/icon.jpg`、350×350）。画像は任意項目 | `content/about.md` |
 | ファビコン | 現行サイトのもの（48×48 PNG）を`assets/images/favicon.png`に配置（Hugoが48/96/144pxに変換）。元が小さいためPWA用の大きいアイコンはぼやける | `params.toml`の`favicon` |
-| SNS | X / Instagram / YouTube / SoundCloud / はてなブログ / Pixiv / TuneCore Japan（表示順どおり）。ヒーロー（アイコン）とお問い合わせページ（アイコン+名称）で共通 | `config/_default/params.toml`の`[[social]]` |
+| SNS | X / Instagram / YouTube / SoundCloud / はてなブログ / Pixiv / TuneCore Japan / Tumblr / GitHub（表示順どおり。Tumblr・GitHubは2026-10-27追加）。ヒーロー（アイコン）とお問い合わせページ（アイコン+名称）で共通 | `config/_default/params.toml`の`[[social]]` |
 | サイト名・メタ | サイト名`asnomi studio`、description/keywords/author、`lang="ja"`、OGP既定画像（現行サイトの720×420を流用） | `config/_default/hugo.toml`・`params.toml`の`[metadata]`、`static/images/ogp.jpg` |
 | フッター | お問い合わせフォーム（名前・メールアドレス・内容）＋`©2012-{ビルド年} asnomi studio`（終了年はビルド時に自動更新）。Kross標準から電話・住所欄のみ除外。フォームの送信先は`contact_form_action`で指定（未設定の`"#"`のままだと送信されない） | `layouts/partials/essentials/footer.html`、`params.toml`の`contact_form_action`/`copyright_since`/`copyright_holder` |
 
