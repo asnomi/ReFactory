@@ -1,0 +1,62 @@
+{{ define "main" }}
+
+{{ partial "components/page-title.html" . }}
+
+<!-- portfolio -->
+<section class="section">
+  <div class="container container-wide">
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="btn-group btn-group-toggle justify-content-center d-flex flex-wrap" data-bs-toggle="buttons">
+          <label class="btn btn-sm btn-primary active">
+            <input type="radio" name="shuffle-filter" class="d-none" value="all" checked="checked" />すべて
+          </label>
+          {{ $categories := slice }}
+          {{ range .RegularPages }}
+          {{ range .Params.categories }}
+          {{ $categories = $categories | append . }}
+          {{ end }}
+          {{ end }}
+          {{ range ( $categories | uniq ) }}
+          <label class="btn btn-sm btn-primary">
+            <input type="radio" name="shuffle-filter" class="d-none" value="{{ . | urlize }}" />{{ . | humanize }}
+          </label>
+          {{ end }}
+        </div>
+      </div>
+    </div>
+    <script>
+      // 絞り込みボタンの選択状態（.active）を、選ばれたボタンに付け替える。
+      // テーマ標準の data-bs-toggle="buttons" は Bootstrap 4 の機能で、Bootstrap 5 では廃止されていて何も起きないため自前で行う。
+      // （絞り込み自体はテーマの script.js が Shuffle.js で行う）
+      document.querySelectorAll('input[name="shuffle-filter"]').forEach(function (input) {
+        input.addEventListener("change", function () {
+          document.querySelectorAll('input[name="shuffle-filter"]').forEach(function (i) {
+            i.closest("label").classList.toggle("active", i.checked);
+          });
+        });
+      });
+    </script>
+    <div class="row grid-tight shuffle-wrapper">
+      {{ range .RegularPages }}
+      {{/* PCは4列・スマホ等は2列（トップページの作品欄と同じ） */}}
+      <div class="col-lg-3 col-6 mb-4 shuffle-item"
+        data-groups="[{{range $index, $element:= .Params.categories }}{{if ne $index 0}},{{end}}&quot;{{. | urlize}}&quot;{{ end }}]">
+        <div class="position-relative rounded hover-wrapper"> 
+          {{ partial "works/thumb.html" . }}
+          <div class="hover-overlay">
+            <div class="hover-content">
+              <p class="text-white font-weight-bold mb-3 px-3">{{ .Title }}</p>
+              <a class="btn btn-light btn-sm" href="{{ .Permalink }}">作品を見る</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+<!-- /portfolio -->
+
+
+{{ end }}

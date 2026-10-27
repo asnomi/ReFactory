@@ -1,0 +1,48 @@
+# Hugoビルド成果物（CI/CDで都度生成、コミット不要）
+public/
+resources/
+hugo_stats.json
+.hugo_build.lock
+# jsconfig.jsonはHugoが`hugo mod`解決時にローカル環境の絶対パス(hugo_cacheの位置)を
+# 埋め込んで自動生成するエディタ支援用ファイル。マシン・配置ディレクトリ依存で
+# 環境間で無意味な差分が発生するため追跡対象外とする。
+**/assets/jsconfig.json
+
+# Node.js（PostCSS/PurgeCSS用ビルドツール、package.jsonから復元可能）
+node_modules/
+
+# 環境変数・シークレット（ローカル開発用。本番はGitHub Secretsで管理）
+.env
+.env.*
+!.env.example
+
+# OS/エディタ
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ログ
+*.log
+
+# Claude Code（個人・セッションローカルな権限設定。共有設定は.claude/settings.jsonに置く）
+.claude/settings.local.json
+
+# Terraform（tfstateはS3リモートバックエンドで管理、ローカルには残さない。.terraform.lock.hclは再現性のためコミット対象）
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+# content/ と themes/kross/ について（2026-10-23 MVP方針変更で追跡対象に変更）
+# - content/: MVPではモック用ダミーコンテンツをコミットしてCIでビルドする。
+#   Notion同期導入時（トラックB再開時）に、同期生成物とダミーの扱いを再検討する。
+# - themes/kross/: git submoduleとして管理（.gitmodules参照）。テーマ本体は無改修で、
+#   カスタマイズはプロジェクト側 layouts/・assets/ で行う。
+
+# Notion同期スクリプトの管理リスト(同期が作ったファイルの一覧。ローカル・CIで都度生成)
+**/.sync-manifest.json

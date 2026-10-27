@@ -1,0 +1,63 @@
+# DON'T REMOVE THIS FILE.
+# This file is for render site varibles and plugins
+# The actual configuration files are stored in the `config/_default/` folder.
+
+######################### site variables ##############################
+# customize your color and font from here.
+# 配色: グレー・ターコイズ・ピンクの淡い色合い（ハワイ風）。色の変更はここだけで全体に反映される
+# 淡い背景色の上の文字は、読みやすさのため濃いグレー(text_dark)にしている（custom.scss の「配色」参照）
+[params.variables]
+color_primary = "#9fd8d1"   # 淡いターコイズ: ヘッダー(スクロール時・スマホ)・下層ページの見出し帯・ボタン
+color_secondary = "#f3a7b8" # 淡いピンク: 選択中の絞り込みボタン等のアクセント
+body_color = "#fff"
+border_color = "#dde3e3"
+black = "#000"
+white = "#fff"
+light = "#f2f4f4"           # フッターの背景
+gray = "#eef1f1"
+text_color = "#5d6468"      # 本文
+text_dark = "#3b4246"       # 見出し・淡い背景の上の文字
+text_light = "#8c9598"      # 日付などの補助的な文字
+
+# font variables
+# base font size for full website, 
+font_size = "16px" # default is 16px
+
+# Font Scale Sizes
+# "minorSecond": 1.067,
+# "majorSecond": 1.125,
+# "minorThird": 1.2,
+# "majorThird": 1.25,
+# "perfectFourth": 1.333,
+# "augmentedFourth": 1.414,
+# "perfectFifth": 1.5,
+# "goldenRatio": 1.618
+font_scale = "1.205" # default is "majorThird": 1.25
+
+# go to https://fonts.google.com/ to find the font you want to use. select your font and copy only the bold part from the URL. and paste it here.
+# example: "Work+Sans:wght@400;500;600"
+font_icon = "themify" # https://themify.me/themify-icons
+# フォントは Adobe Fonts（キット plc5kmg、現行サイトと同じ）を使う。読み込みは layouts/partials/essentials/head.html の埋め込みコード
+# ここでは書体名だけを指定する: 本文・小見出し・メニュー・ボタン = vdl-yotag（大見出し h1 の ab-anzu は custom.scss で指定）
+font_primary = "vdl-yotag"
+font_primary_type = "sans-serif" # [serif/sans-serif]
+font_secondary = "vdl-yotag"
+font_secondary_type = "sans-serif" # [serif/sans-serif]
+
+############################# Plugins ##############################
+
+# CSS Plugins
+[[params.plugins.css]]
+link = "plugins/themify-icons/icons.css"
+
+# JS Plugins
+# [[params.plugins.js]]
+# link = "plugins/jquery/jquery.min.js"
+[[params.plugins.js]]
+link = "plugins/cookie.js"
+[[params.plugins.js]]
+link = "plugins/lazy-loader.js" 
+[[params.plugins.js]]
+link = "plugins/shuffle/shuffle.min.js"
+# Swiper（スライダー）はどのページでも使っていないため読み込まない（2026-10-26削除。約150KB削減）
+# webfont-loader（Google フォント等の読み込み部品）は、読み込み指示が無く実際には使われていなかったため外した（フォントは Adobe Fonts の埋め込みコードで読み込む） 

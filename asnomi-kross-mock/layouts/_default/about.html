@@ -1,0 +1,33 @@
+{{- /*
+  プロフィールページ。Kross標準の about.html から、個人サイトに不要な
+  Work Process / Team / Clients 区画を除き、プロフィール画像(author_image)も任意にした版。
+  本文は content/about.md、画像は front matter の author_image（assets/ 配下のパス）で指定する。
+*/ -}}
+{{ define "main" }}
+
+{{ partial "components/page-title.html" . }}
+
+<!-- about -->
+<section class="section">
+  <div class="container">
+    <div class="row justify-content-center">
+      {{ with .Params.author_image }}
+      <div class="col-md-8 order-2 order-md-1">
+        <div class="content">{{ $.Content }}</div>
+      </div>
+      <div class="col-md-4 order-1 order-md-2 text-center mb-4 mb-md-0">
+        <div class="shadow-down">
+          {{ partial "image.html" (dict "Src" . "Alt" "asnomi" "Class" `w-100 h-auto rounded-lg border-thick border-white`) }}
+        </div>
+      </div>
+      {{ else }}
+      <div class="col-lg-8">
+        <div class="content">{{ .Content }}</div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+<!-- /about -->
+
+{{ end }}

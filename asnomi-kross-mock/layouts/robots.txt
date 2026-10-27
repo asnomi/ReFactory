@@ -1,0 +1,7 @@
+User-agent: *
+{{ if partial "is-indexable.html" . -}}
+Allow: /
+Sitemap: {{ "sitemap.xml" | absURL }}
+{{- else -}}
+Disallow: /
+{{- end }}

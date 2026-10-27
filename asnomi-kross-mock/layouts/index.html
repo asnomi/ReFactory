@@ -1,0 +1,229 @@
+{{ define "main" }}
+
+{{ with .Params.banner }}
+<!-- hero area: フルブリード写真ヒーロー（標準Krossのパララックス装飾を廃止） -->
+<!-- 画像は assets/ から取得し、ビルド時にリサイズ+WebP化（NF-102）。キャッチコピー(title)・サブテキスト(subtitle)は任意 -->
+<section class="hero-area-photo overflow-hidden" id="hero-photo">
+  {{ $img := "" }}
+  {{ with .image }}{{ $img = resources.Get . }}{{ end }}
+  {{ if $img }}
+  {{ $lg := $img.Resize "1920x webp q80" }}
+  {{ $md := $img.Resize "1280x webp q80" }}
+  {{ $sm := $img.Resize "768x webp q80" }}
+  <img class="hero-bg" src="{{ $lg.RelPermalink }}"
+    srcset="{{ $sm.RelPermalink }} 768w, {{ $md.RelPermalink }} 1280w, {{ $lg.RelPermalink }} 1920w"
+    sizes="100vw" width="{{ $lg.Width }}" height="{{ $lg.Height }}" alt="" fetchpriority="high" decoding="async">
+  {{ end }}
+  <div class="hero-overlay"></div>
+  <div class="container position-relative hero-inner">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        {{ if .title }}
+        <h1 class="text-white">{{ .title | safeHTML }}</h1>
+        {{ else }}
+        <h1 class="visually-hidden">{{ site.Title }}</h1>
+        {{ end }}
+        {{ with .subtitle }}<p class="text-white hero-subtitle">{{ . | safeHTML }}</p>{{ end }}
+      </div>
+    </div>
+  </div>
+
+  <!-- social icon -->
+  <ul class="social-icon hero-social list-unstyled">
+    {{ partial "social-links.html" (dict "liClass" "" "aClass" "text-white") }}
+  </ul>
+  <!-- /social icon -->
+</section>
+<!-- /hero area -->
+{{ end }}
+
+{{ if .Params.about.enable }}
+<!-- about -->
+<section class="section">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto text-center">
+        {{ with .Params.about }}
+        <p class="font-secondary lead text-dark">{{.content | markdownify}}</p>
+        {{ if .button.enable }}
+        {{ with .button }}
+        <a href="{{ .URL | absURL }}" class="btn btn-transparent">{{.label}}</a>
+        {{ end }}
+        {{ end }}
+        {{ end }}
+      </div>
+    </div>
+  </div>
+</section>
+<!-- /about -->
+{{ end }}
+
+
+{{ if .Params.skill.enable }}
+{{ with .Params.skill }}
+<!-- skills -->
+<section class="section">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12 text-center">
+        <h2 class="section-title">{{ .title | markdownify }}</h2>
+      </div>
+      {{ range .item }}
+      <div class="col-lg-3 col-sm-6 mb-4">
+        <div class="card shadow text-center">
+          <div class="position-relative rounded-top progress-wrapper" data-color="{{.color}}">
+            <div class="wave" data-progress="{{.progress}}"></div>
+          </div>
+          <div class="card-footer bg-white p-4">
+            <h3 class="h5 card-title m-0">{{.title }} ({{.progress}})</h3>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+<!-- /skills -->
+{{ end }}
+{{ end }}
+
+{{ if .Params.experience.enable }}
+{{ with .Params.experience }}
+<!-- experience -->
+<section class="section">
+  <div class="container">
+    <div class="row justify-content-around">
+      <div class="col-lg-12 text-center">
+        <h2 class="section-title">{{ .title | markdownify }}</h2>
+      </div>
+      {{ range .item }}
+      <div class="col-lg-3 col-md-4 text-center">
+        {{ partial "image.html" (dict "Src" .logo "Alt" "icon") }}
+        <p class="mb-0">{{.duration}}</p>
+        <h3 class="h5">{{.title }}</h3>
+        <h4 class="h6 text-light">{{.company }}</h4>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+<!-- /experience -->
+{{ end }}
+{{ end }}
+
+{{ if .Params.education.enable }}
+{{ with .Params.education }}
+<!-- education -->
+<section class="section position-relative">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12 text-center">
+        <h2 class="section-title">{{ .title | markdownify }}</h2>
+      </div>
+      {{ range .item }}
+      <div class="col-lg-6 col-md-6 mb-80">
+        <div class="d-flex">
+          <div class="me-lg-5 me-3">
+            <i class="ti-medall icon icon-light icon-bg bg-white shadow rounded-circle d-block"></i>
+          </div>
+          <div>
+            <p class="text-dark mb-1">{{.year}}</p>
+            <h3 class="h5">{{ .title }}</h3>
+            <p class="mb-0 text-light">{{.academy}}</p>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+  <!-- bg image -->
+  {{ partial "image.html" (dict "Src" "images/backgrounds/education-bg.png" "Alt" "bg-image" "Class" `edu-bg-image
+  w-100`) }}
+</section>
+<!-- /education -->
+{{ end }}
+{{ end }}
+
+
+{{ if .Params.service.enable }}
+{{ with .Params.service }}
+<!-- services -->
+<section class="section">
+  <div class="container">
+    <div class="row">
+      <div class="col-12 text-center">
+        <h2 class="section-title">{{ .title | markdownify }}</h2>
+      </div>
+      {{ range .item }}
+      <div class="col-md-4 mb-4">
+        <div class="card {{if .highlighted }} active-bg-primary {{end}} hover-shadow shadow">
+          <div class="card-body text-center px-4 py-5">
+            <i class="{{.icon }} icon mb-5 d-inline-block"></i>
+            <h3 class="h5 mb-4">{{.title}}</h3>
+            <p>{{.content | markdownify}}</p>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+<!-- /services -->
+{{ end }}
+{{ end }}
+
+
+{{ if .Params.portfolio.enable }}
+<!-- portfolio -->
+<section class="section">
+  <div class="container container-wide">
+    <div class="row justify-content-center">
+      <div class="col-12 text-center">
+        <h2 class="section-title">{{ .Params.portfolio.title | markdownify }}</h2>
+      </div>
+    </div>
+    <div class="row grid-tight shuffle-wrapper">
+      {{ $item:= .Params.portfolio.item_show }}
+      {{ range first $item (where .Site.RegularPages "Section" "works") }}
+      {{/* PCは4列・スマホ等は2列（作品ギャラリーと同じ） */}}
+      <div class="col-lg-3 col-6 mb-4 shuffle-item">
+        <div class="position-relative rounded hover-wrapper">
+          {{ partial "works/thumb.html" . }}
+          <div class="hover-overlay">
+            <div class="hover-content">
+              <p class="text-white font-weight-bold mb-3 px-3">{{ .Title }}</p>
+              <a class="btn btn-light btn-sm" href="{{ .Permalink | safeURL }}">作品を見る</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+<!-- /portfolio -->
+{{ end }}
+
+
+
+
+
+{{ if .Params.blog.enable }}
+<!-- blog -->
+<section class="section">
+  <div class="container container-wide">
+    <div class="row grid-tight">
+      <div class="col-12 text-center">
+        <h2 class="section-title">{{.Params.blog.title | markdownify }}</h2>
+      </div>
+      {{ range first 3 (where .Site.RegularPages "Section" "news")}}
+      {{ .Render "post" }}
+      {{ end }}
+    </div>
+  </div>
+</section>
+<!-- /blog -->
+{{ end }}
+
+
+{{ end }}

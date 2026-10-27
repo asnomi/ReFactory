@@ -1,0 +1,82 @@
+<meta charset="utf-8" />
+<!-- <title> は下の basic-seo.html が出力する（テーマ標準ではここと二重出力になっていたため、ここでは出さない） -->
+
+<!-- responsive meta -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+
+<!-- 検証環境の検索エンジン除外（判定は partials/is-indexable.html。robots.txt と併用） -->
+{{ if not (partial "is-indexable.html" .) }}
+<meta name="robots" content="noindex, nofollow" />
+{{ end }}
+
+<!-- Adobe Fonts（キット plc5kmg）。現行サイトと同じ JavaScript 埋め込みコード。
+     日本語フォントは必要な文字だけを読み込む方式（動的サブセット）のため、CSS の link ではなくこの方式が必要 -->
+<script>
+  (function (d) {
+    var config = { kitId: "plc5kmg", scriptTimeout: 3000, async: true },
+      h = d.documentElement,
+      t = setTimeout(function () { h.className = h.className.replace(/\bwf-loading\b/g, "") + " wf-inactive"; }, config.scriptTimeout),
+      tk = d.createElement("script"), f = false, s = d.getElementsByTagName("script")[0], a;
+    h.className += " wf-loading";
+    tk.src = "https://use.typekit.net/" + config.kitId + ".js";
+    tk.async = true;
+    tk.onload = tk.onreadystatechange = function () {
+      a = this.readyState;
+      if (f || (a && a != "complete" && a != "loaded")) return;
+      f = true;
+      clearTimeout(t);
+      try { Typekit.load(config); } catch (e) {}
+    };
+    s.parentNode.insertBefore(tk, s);
+  })(document);
+</script>
+
+<!-- theme meta -->
+<meta name="theme-name" content="kross-hugo" />
+
+<!-- favicon -->
+{{ partialCached "favicon" . }}
+
+
+<!-- manifest -->
+{{ partialCached "manifest" . }}
+
+
+<!-- site verifications -->
+{{ partialCached "site-verifications.html" . }}
+
+
+<!-- opengraph and twitter card -->
+{{ partial "basic-seo.html" . }}
+
+
+<!-- custom script -->
+{{ partialCached "custom-script.html" . }}
+
+
+<!-- google analytics -->
+{{ template "_internal/google_analytics.html" . }}
+
+
+<!-- google tag manager -->
+{{ partialCached "gtm.html" . }}
+
+
+<!-- matomo analytics -->
+{{ partialCached "matomo-analytics.html" . }}
+
+
+<!--  Baidu analytics -->
+{{ partialCached "baidu-analytics.html" . }}
+
+
+<!-- Plausible Analytics -->
+{{ partialCached "plausible-analytics.html" . }}
+
+
+<!-- Counter Analytics -->
+{{ partialCached "counter-analytics.html" . }}
+
+
+<!-- Crisp Chat -->
+{{ partialCached "crisp-chat.html" . }}
