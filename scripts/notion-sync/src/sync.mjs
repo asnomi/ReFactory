@@ -3,7 +3,8 @@
 import { downloadImage } from './images.mjs';
 import { renderDocument } from './frontmatter.mjs';
 import { blocksToMarkdown } from './markdown.mjs';
-import { readCheckbox, readDate, readImageUrl, readSelect, readText, toHugoDate } from './props.mjs';
+import { readCheckbox, readDate, readHttpsUrl, readImageUrl, readNumber, readSelect, readText, toHugoDate } from './props.mjs';
+import { SALE_STATUS_MAP } from './schema.mjs';
 import { findDuplicates, validateSlug } from './slug.mjs';
 
 /** 同期全体を止めるべきエラー(認証・接続・列の欠落など)。 */
@@ -180,10 +181,33 @@ export async function syncDatabase({ client, def, dbId, writer, log, fetchImpl =
         log.warn(scope, `${def.columns.category.name}が空です(ギャラリーの絞り込みに出ません)`);
       }
       const description = readText(col(page, 'description'));
+      const shopUrl = (key) => {
+        const v = readHttpsUrl(col(page, key));
+        if (v?.invalid !== undefined) {
+          log.warn(scope, `${def.columns[key].name}が https:// で始まるURLではないため出力しません`);
+          return null;
+        }
+        return v;
+      };
+      const saleRaw = readSelect(col(page, 'saleStatus'));
+      const saleStatus = saleRaw ? SALE_STATUS_MAP[saleRaw] : null;
+      if (saleRaw && !saleStatus) {
+        log.warn(scope, `${def.columns.saleStatus.name}「${saleRaw}」は対象外の値のため出力しません`);
+      }
       const common = [['title', title], ['date', { raw: toHugoDate(date) }]];
       const fields =
         def.id === 'works'
-          ? [...common, ['image', image], ['categories', category ? [category] : []], ['description', description], ['draft', false]]
+          ? [
+              ...common,
+              ['image', image],
+              ['categories', category ? [category] : []],
+              ['description', description],
+              ['price', readNumber(col(page, 'price'))],
+              ['spec', readText(col(page, 'spec'))],
+              ['shops', { map: [['booth', shopUrl('booth')], ['melonbooks', shopUrl('melonbooks')], ['streaming', shopUrl('streaming')]] }],
+              ['sale_status', saleStatus],
+              ['draft', false],
+            ]
           : [...common, ['description', description], ['image', image], ['draft', false]];
 
       writer.write(mdRel, renderDocument(fields, body));

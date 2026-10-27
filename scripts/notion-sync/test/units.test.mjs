@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderDocument } from '../src/frontmatter.mjs';
 import { pickExtension } from '../src/images.mjs';
-import { blocksToMarkdown, richTextToMarkdown } from '../src/markdown.mjs';
-import { readDate, readImageUrl, toHugoDate } from '../src/props.mjs';
+import { blocksToMarkdown, richTextToMarkdown, youtubeId } from '../src/markdown.mjs';
+import { readDate, readHttpsUrl, readImageUrl, toHugoDate } from '../src/props.mjs';
 import { findDuplicates, validateSlug } from '../src/slug.mjs';
 
 const rt = (text, annotations = {}, href = null) => ({ plain_text: text, annotations, href });
@@ -113,4 +113,43 @@ test('本文: 画像の保存に失敗したブロックは出力しない', asy
     ctx,
   );
   assert.equal(md, '本文');
+});
+
+test('フロントマター: ネスト(shops)は空の項目を出さず、全部空ならキーごと出さない', () => {
+  const full = renderDocument([['shops', { map: [['booth', 'https://b'], ['melonbooks', null], ['streaming', 'https://s']] }]]);
+  assert.equal(full, '---\nshops:\n  booth: "https://b"\n  streaming: "https://s"\n---\n');
+  assert.equal(renderDocument([['title', 'a'], ['shops', { map: [['booth', null], ['melonbooks', '']] }]]), '---\ntitle: "a"\n---\n');
+  assert.equal(renderDocument([['spec', 'A5\n28ページ']]), '---\nspec: "A5\\n28ページ"\n---\n');
+});
+
+test('URL列: https:// のみ許可', () => {
+  assert.equal(readHttpsUrl({ type: 'url', url: 'https://x.booth.pm/items/1' }), 'https://x.booth.pm/items/1');
+  assert.equal(readHttpsUrl({ type: 'url', url: null }), null);
+  assert.equal(readHttpsUrl({ type: 'url', url: '  ' }), null);
+  assert.deepEqual(readHttpsUrl({ type: 'url', url: 'http://x' }), { invalid: 'http://x' });
+  assert.deepEqual(readHttpsUrl({ type: 'url', url: 'javascript:alert(1)' }), { invalid: 'javascript:alert(1)' });
+});
+
+test('YouTube: 各形式のURLから動画IDを取り出す', () => {
+  const id = 'dQw4w9WgXcQ';
+  for (const u of [`https://www.youtube.com/watch?v=${id}&t=3`, `https://youtu.be/${id}?si=x`, `https://www.youtube.com/embed/${id}`, `https://m.youtube.com/shorts/${id}`]) {
+    assert.equal(youtubeId(u), id, u);
+  }
+  for (const u of ['https://vimeo.com/123456', 'https://www.youtube.com/', 'https://evil.example/watch?v=dQw4w9WgXcQ', 'not a url', undefined]) {
+    assert.equal(youtubeId(u), null, String(u));
+  }
+});
+
+test('本文: YouTubeはショートコード、それ以外の動画は警告して飛ばす', async () => {
+  const ctx = makeCtx();
+  const md = await blocksToMarkdown(
+    [
+      { id: 'v1', type: 'video', has_children: false, video: { type: 'external', external: { url: 'https://youtu.be/dQw4w9WgXcQ' } } },
+      { id: 'v2', type: 'video', has_children: false, video: { type: 'file', file: { url: 'https://files/x.mp4' } } },
+      { id: 'e1', type: 'embed', has_children: false, embed: { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } },
+    ],
+    ctx,
+  );
+  assert.equal(md, '{{< youtube dQw4w9WgXcQ >}}\n\n{{< youtube dQw4w9WgXcQ >}}');
+  assert.deepEqual(ctx.warnings, ['YouTube以外のvideoブロックを飛ばしました']);
 });

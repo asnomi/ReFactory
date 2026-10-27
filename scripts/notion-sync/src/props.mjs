@@ -41,3 +41,15 @@ export function readImageUrl(prop) {
   }
   return null;
 }
+
+// 数値列の値。空・数値以外はnull。
+export function readNumber(prop) {
+  return prop?.type === 'number' && Number.isFinite(prop.number) ? prop.number : null;
+}
+
+// URL列の値。https:// で始まるものだけ返す。空ならnull、https以外なら { invalid: 値 }。
+export function readHttpsUrl(prop) {
+  const url = (prop?.type === 'url' ? prop.url : '')?.trim();
+  if (!url) return null;
+  return /^https:\/\/\S+$/.test(url) ? url : { invalid: url };
+}

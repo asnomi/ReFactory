@@ -15,13 +15,14 @@ const rt = (t) => [{ plain_text: t, annotations: {} }];
 const worksProps = {
   タイトル: { type: 'title' }, スラッグ: { type: 'rich_text' }, 公開: { type: 'checkbox' }, 頒布日: { type: 'date' },
   種別: { type: 'select' }, 説明文: { type: 'rich_text' }, カバー画像: { type: 'files' },
+  価格: { type: 'number' }, 仕様: { type: 'rich_text' }, BOOTH: { type: 'url' }, メロンブックス: { type: 'url' }, 配信URL: { type: 'url' }, 販売状況: { type: 'select' },
 };
 const newsProps = {
   タイトル: { type: 'title' }, スラッグ: { type: 'rich_text' }, 公開: { type: 'checkbox' }, 掲載日: { type: 'date' },
   要約: { type: 'rich_text' }, サムネイルURL: { type: 'url' },
 };
 
-function workPage(id, { title, slug, date = '2023-08-13', kind = '同人誌', cover = 'https://files.example/cover.png?sig=SECRET' }) {
+function workPage(id, { title, slug, date = '2023-08-13', kind = '同人誌', cover = 'https://files.example/cover.png?sig=SECRET', extra = {} }) {
   return {
     object: 'page', id,
     properties: {
@@ -32,6 +33,7 @@ function workPage(id, { title, slug, date = '2023-08-13', kind = '同人誌', co
       種別: { type: 'select', select: kind ? { name: kind } : null },
       説明文: { type: 'rich_text', rich_text: rt('説明') },
       カバー画像: { type: 'files', files: cover ? [{ type: 'file', file: { url: cover } }] : [] },
+      ...extra,
     },
   };
 }
@@ -197,6 +199,44 @@ test('dry-run: ファイルを書かない', async () => {
     writer.finalize();
     assert.equal(res.written, 1);
     assert.deepEqual(fs.readdirSync(dir), []);
+  } finally {
+    restore();
+  }
+});
+
+test('作品: 価格・仕様・販売先・販売状況を出力、不正な値はその項目だけ警告して出さない', async () => {
+  const { dir, log, restore } = setup();
+  try {
+    const url = (u) => ({ type: 'url', url: u });
+    const pages = [
+      workPage('1', {
+        title: '全部', slug: 'full', cover: null,
+        extra: {
+          価格: { type: 'number', number: 800 },
+          仕様: { type: 'rich_text', rich_text: rt('A5 フルカラー\n28ページ') },
+          BOOTH: url('https://x.booth.pm/items/1'),
+          メロンブックス: url('http://melon.example/1'),
+          配信URL: url(null),
+          販売状況: { type: 'select', select: { name: '販売中' } },
+        },
+      }),
+      workPage('2', { title: '対象外', slug: 'other', cover: null, extra: { 販売状況: { type: 'select', select: { name: '停止中' } } } }),
+    ];
+    const writer = new OutputWriter(dir);
+    await syncDatabase({ client: fakeClient({ props: worksProps, pages }), def: WORKS, dbId: 'db', writer, log, fetchImpl: okFetch });
+    const full = fs.readFileSync(path.join(dir, 'content/works/full.md'), 'utf8');
+    assert.ok(
+      full.includes(
+        'description: "説明"\nprice: 800\nspec: "A5 フルカラー\\n28ページ"\nshops:\n  booth: "https://x.booth.pm/items/1"\nsale_status: "販売中"\ndraft: false\n',
+      ),
+      full,
+    );
+    assert.doesNotMatch(full, /melonbooks|streaming/);
+    const other = fs.readFileSync(path.join(dir, 'content/works/other.md'), 'utf8');
+    assert.doesNotMatch(other, /sale_status|shops|price|spec/);
+    const msgs = log.warnings.map((w) => w.message);
+    assert.ok(msgs.some((m) => /メロンブックス.*https/.test(m)));
+    assert.ok(msgs.some((m) => /販売状況「停止中」/.test(m)));
   } finally {
     restore();
   }

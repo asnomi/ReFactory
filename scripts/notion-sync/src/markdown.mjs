@@ -1,5 +1,5 @@
 // Notionのブロック → Markdown（設計書 3.4節）。
-// 対応: 段落・見出し・箇条書き・番号付きリスト・画像・リンクと文字装飾。未対応のブロックは警告して飛ばす。
+// 対応: 段落・見出し・箇条書き・番号付きリスト・画像・YouTube動画（Hugoのyoutubeショートコード）・リンクと文字装飾。未対応のブロックは警告して飛ばす。
 //
 // ctx:
 //   listChildren(blockId) → 子ブロックの配列
@@ -74,6 +74,24 @@ function indent(text, width) {
     .join('\n');
 }
 
+// YouTubeのURL(watch・短縮・embed・shorts)から動画IDを取り出す。YouTubeでなければnull。
+export function youtubeId(url) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^(www|m)\./, '');
+  let id = null;
+  if (host === 'youtu.be') id = u.pathname.slice(1);
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+    const m = /^\/(?:embed|shorts|live)\/([^/]+)/.exec(u.pathname);
+    id = m ? m[1] : u.pathname === '/watch' ? u.searchParams.get('v') : null;
+  }
+  return id && /^[A-Za-z0-9_-]{6,20}$/.test(id) ? id : null;
+}
+
 async function renderBlock(block, ctx) {
   const { type } = block;
   const data = block[type];
@@ -101,6 +119,14 @@ async function renderBlock(block, ctx) {
     if (!ref) return null;
     const alt = richTextToMarkdown(data.caption).replace(/[[\]]/g, '').replace(/\n/g, ' ').trim();
     return { text: `![${alt}](${ref})`, list: false };
+  }
+
+  if (type === 'video' || type === 'embed') {
+    const url = data.type === 'external' ? data.external?.url : data.url;
+    const id = youtubeId(url);
+    if (id) return { text: `{{< youtube ${id} >}}`, list: false };
+    ctx.warn(`YouTube以外の${type}ブロックを飛ばしました`);
+    return null;
   }
 
   ctx.warn(`未対応のブロック(${type})を飛ばしました`);
