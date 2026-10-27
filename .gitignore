@@ -38,11 +38,18 @@ Thumbs.db
 crash.log
 crash.*.log
 
-# content/ と themes/kross/ について（2026-10-23 MVP方針変更で追跡対象に変更）
-# - content/: MVPではモック用ダミーコンテンツをコミットしてCIでビルドする。
-#   Notion同期導入時（トラックB再開時）に、同期生成物とダミーの扱いを再検討する。
+# content/ と themes/kross/ について
 # - themes/kross/: git submoduleとして管理（.gitmodules参照）。テーマ本体は無改修で、
 #   カスタマイズはプロジェクト側 layouts/・assets/ で行う。
+# - content/ のうち、作品・ニュースのMarkdownと、その画像は Notion同期の生成物（CIで都度生成）のため追跡しない。
+#   _index.md や about.md 等の固定ページはコミットする。ローカルで確認するときは scripts/notion-sync で同期する。
+#   （2026-10 サンプルコンテンツからNotion同期へ切り替え。出力先は scripts/notion-sync/README.md 参照）
+asnomi-kross-mock/content/works/*.md
+!asnomi-kross-mock/content/works/_index.md
+asnomi-kross-mock/content/news/*.md
+!asnomi-kross-mock/content/news/_index.md
+asnomi-kross-mock/assets/images/works/
+asnomi-kross-mock/assets/images/news/
 
 # Notion同期スクリプトの管理リスト(同期が作ったファイルの一覧。ローカル・CIで都度生成)
 **/.sync-manifest.json
