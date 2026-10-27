@@ -37,7 +37,7 @@ service:
 portfolio:
   enable : true
   title : "作品ギャラリー"
-  item_show : 6
+  item_show : 8 # PCは4列のため、4の倍数にすると最後の行が欠けない
   # portfolio item comes from 'content/english/portfolio' folder
 
 # blog -> news (T2-5: ニュース・近況エリア、ホームには最新3件)

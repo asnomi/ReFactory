@@ -278,6 +278,19 @@ a.text-dark:hover {
   gap: 0.5rem;
 }
 
+// 販売先ボタンの色: ピンク地に濃いグレーの文字。他のボタン（.btn-primary）には影響させないよう専用のクラスにする
+.btn.btn-shop {
+  background: $color-secondary;
+  color: $text-dark;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background: lighten($color-secondary, 6%);
+    color: $text-dark;
+  }
+}
+
 // 本文の画像キャプション（Bootstrap標準の色ではなく、サイトの文字色に合わせる）
 .content figcaption {
   color: $text-color;

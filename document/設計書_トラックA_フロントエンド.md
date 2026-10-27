@@ -6,7 +6,7 @@
 
 **対応要件:** F-301, F-302, F-303, F-304
 
-**Document Version:** 1.12（作品ページの価格・販売先表示、YouTubeの軽い埋め込みを反映）
+**Document Version:** 1.13（トップの作品欄の4列化・販売先ボタンの色を反映）
 
 **Date:** 2026-08-25（初版）／2026-08-26改訂（トラックBの[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md)に合わせ、コンテンツ出力パスを`content/works/`・`content/news/`に統一。詳細は7.5節）／2026-10-23改訂（404.html出力不具合の修正、検証環境のnoindex/robots.txt対応。詳細は7.6節）
 
@@ -353,6 +353,11 @@ Notion同期で追加された作品の項目（`price` `spec` `shops` `sale_sta
 | 4 | **YouTube**: 同期が出力するHugo組み込みの `{{< youtube ID >}}` を上書きし、最初はサムネイルだけ表示、押したときに動画を読み込む方式にした（テーマ同梱の `youtube-lite` の部品を利用）。再生時は `youtube-nocookie.com` を使う。ページを開いただけではYouTubeと通信しない | `layouts/_shortcodes/youtube.html` |
 | 5 | 日付の見出しを「制作日」から「頒布日」に変更（Notionの列名に合わせる） | `layouts/works/single.html` |
 | 6 | 本文の画像キャプションの文字色を、サイトの文字色に合わせた | `custom.scss` |
+
+### 7.17 トップの作品欄を4列に・販売先ボタンをピンクに（2026-10-27）
+
+- トップページの作品欄を、作品ギャラリーと同じPC4列（スマホ等は2列）に変更。表示件数を6件→8件（4の倍数）に変更（content/_index.mdのportfolio.item_show）。
+- 作品ページの販売先ボタンを、アクセント色のピンク（color_secondary）に変更。専用クラス.btn-shopで指定し、他のボタン（.btn-primary: 絞り込み・続きを読む・404の戻るボタン）の色は変えない。
 
 ---
 
