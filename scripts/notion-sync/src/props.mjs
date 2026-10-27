@@ -41,3 +41,10 @@ export function readImageUrl(prop) {
   }
   return null;
 }
+
+// URL列の値。https:// で始まるものだけ返す。空ならnull、https以外なら { invalid: 値 }。
+export function readHttpsUrl(prop) {
+  const url = (prop?.type === 'url' ? prop.url : '')?.trim();
+  if (!url) return null;
+  return /^https:\/\/\S+$/.test(url) ? url : { invalid: url };
+}
