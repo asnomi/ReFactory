@@ -308,3 +308,18 @@ a.text-dark:hover {
 .content figcaption {
   color: $text-color;
 }
+
+// 本文のリスト: テーマが全てのリストの番号・黒丸を消しているため、本文だけ戻す（トラックリスト・収録話の番号など）
+.content {
+  ol {
+    list-style-type: decimal;
+  }
+
+  ul {
+    list-style-type: disc;
+
+    ul {
+      list-style-type: circle;
+    }
+  }
+}
