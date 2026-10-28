@@ -68,6 +68,20 @@ jobs:
           name: site
           path: public/
 
+      # 本番のCloudFrontは、旧サイトのパスを現行バケット（2つ目のオリジン）へ振り分ける（トラックD設計書9章）。
+      # Hugoがこれらのパスにファイルを出力すると、アップロードはされても表示されないため、出力されていたら止める。
+      # 旧ページを新サイトのページへ置き換えるときは、トラックD側で振り分けからそのパスを外してから、ここの一覧も更新する。
+      - name: 旧サイト用パスとの重複確認
+        run: |
+          conflict=0
+          for p in contents img hyouhon1422 style favicon.ico discography.html biography.html; do
+            if [ -e "public/$p" ]; then
+              echo "::error::public/$p が出力されています。旧サイト用の振り分け対象パスのため、本番では表示されません"
+              conflict=1
+            fi
+          done
+          exit $conflict
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
