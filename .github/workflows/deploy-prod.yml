@@ -1,7 +1,7 @@
 # main ブランチを Notion 同期 → ビルド → 本番（asnomi.com）へデプロイする。
 #
 # ビルド（同期・0件ガード・Hugo）は build-site.yml（devと共通）。deployジョブは `environment: prod`。
-# prod Environment には承認者を設定する（承認されるまでdeployジョブは待機し、承認後に進む）。
+# prod Environment は承認者なし（2026-10-28決定）。本番に出る入口を dev → main のマージに一本化し、そのマージを実質の承認とする。
 # OIDCの信頼ポリシーは prod Environment の sub に限定される（トラックD設計書9.2）。
 # AWSの値（S3_BUCKET_NAME / CLOUDFRONT_DISTRIBUTION_ID / AWS_DEPLOY_ROLE_ARN）は prod Environment の Variables から読む。
 name: deploy-prod
@@ -36,7 +36,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.deploy)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: prod # 承認者あり。承認後にこのジョブが進む
+    environment: prod # 承認者なし。main に入った内容は承認なしで本番へ出る（承認は dev → main のマージ）
     permissions:
       id-token: write
       contents: read

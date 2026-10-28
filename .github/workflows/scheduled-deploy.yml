@@ -1,13 +1,14 @@
 # 定期実行。Notionの更新（と、未来日付のニュースの公開）をサイトに反映するため、6時間おきにデプロイを起動する。
 #
-# `schedule` は既定ブランチ（main）のワークフローしか動かず、実行時のrefも main になる。
-# そのまま deploy-dev を schedule にすると dev ではなく main がビルドされ、dev Environment
-# （Deployment branches = dev のみ）にも弾かれる。そのため、このワークフローは何もビルドせず、
+# `schedule` は既定ブランチ（dev）のワークフローしか動かず、実行時のrefも dev になる。
+# dev 向けはそれで足りるが、prod は main をビルドし、prod Environment（Deployment branches = main のみ）
+# でしかデプロイできない。そのため、このワークフローは何もビルドせず、
 # 各デプロイワークフローを正しいrefで workflow_dispatch するだけにしている。
 #
 # - dev : 常に起動（ref = dev）
-# - prod: リポジトリ変数 SCHEDULE_DEPLOY_PROD が 'true' のときだけ起動（ref = main）。リリース後に 'true' にする。
-#         prod の deploy ジョブは prod Environment の承認待ちになる（承認されるまでデプロイされない）。
+# - prod: リポジトリ変数 SCHEDULE_DEPLOY_PROD が 'true' のときだけ起動（ref = main）。リリース後にユーザーが 'true' にする。
+#         prod Environment は承認者なし（2026-10-28決定）のため、起動すると承認待ちなしでデプロイされる。止めるときは変数を false にする。
+#         main に deploy-prod.yml が入る前に 'true' にすると、このステップだけ失敗する。
 name: scheduled-deploy
 
 on:
