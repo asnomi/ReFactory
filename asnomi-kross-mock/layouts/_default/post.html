@@ -7,7 +7,8 @@
   <article class="card shadow overflow-hidden">
     {{ with .Params.image }}
     <a href="{{ $.Permalink }}" title="{{ $.Title }}">
-      {{ partial "image.html" (dict "Src" . "Alt" $.Title "Size" `800x`) }}
+      {{/* 高精細ディスプレイ向けに800pxで出力し、表示はカードの幅に合わせる（w-100。高さは custom.scss の img.img で縦横比を維持） */}}
+      {{ partial "image.html" (dict "Src" . "Alt" $.Title "Size" `800x` "Class" `w-100`) }}
     </a>
     {{ end }}
     <div class="card-body p-4">
