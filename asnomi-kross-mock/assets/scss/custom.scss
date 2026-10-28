@@ -210,9 +210,15 @@ $link-hover: #3c9a92; // リンク色・ホバー色（淡いターコイズの�
   --bs-link-hover-color-rgb: #{red($link-hover)}, #{green($link-hover)}, #{blue($link-hover)};
 }
 
-a:hover,
+// ボタン（.btn）は除く。ボタンのホバー時の文字色は、各ボタンの指定に従う
+a:not(.btn):hover,
 a.text-dark:hover {
   color: $link-hover !important;
+}
+
+// 枠なしボタン（プロフィールを見る・404の作品を見る）: ホバー時はリンクと同じ濃いターコイズ
+.btn.btn-transparent:hover {
+  color: $link-hover;
 }
 
 ::selection {
@@ -278,8 +284,10 @@ a.text-dark:hover {
   gap: 0.5rem;
 }
 
-// アクセント色のボタン（販売先ボタン・お知らせの「続きを読む」）: ピンク地に濃いグレーの文字
+// アクセント色のボタン（販売先ボタン・お知らせの「続きを読む」）: ピンク地に濃いグレーの文字。ホバー時は濃いピンクの文字
 // 他のボタン（.btn-primary: 絞り込み等）には影響させないよう専用のクラスにする
+$accent-dark: #a61e4d; // ホバー時の文字色。ホバー時の地の色との明暗差が読みやすさの基準（4.5:1）を満たす濃さにしている
+
 .btn.btn-accent {
   background: $color-secondary;
   color: $text-dark;
@@ -288,7 +296,7 @@ a.text-dark:hover {
   &:focus,
   &:active {
     background: lighten($color-secondary, 6%);
-    color: $text-dark;
+    color: $accent-dark;
   }
 }
 
