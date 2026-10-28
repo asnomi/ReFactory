@@ -276,7 +276,7 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 | Route53 | `asnomi.com` のA/AAAAレコードだけを切り替える。それ以外のレコードは変更しない |
 | 旧サイトのURL | 旧ファイルをまず全て残して配信し、新サイトに対応するページができたものから順にリダイレクトする |
 | `www.asnomi.com` | 作らない（現状維持） |
-| 本番ブランチ | `main`。GitHubの `prod` Environment（Deployment branchesは `main` のみ、承認者あり）経由でデプロイする |
+| 本番ブランチ | `main`。GitHubの `prod` Environment（Deployment branchesは `main` のみ、承認者なし（2026-10-28決定））経由でデプロイする。OIDCの許可は `environment:prod` の1つのみ |
 | 切り替えの判断基準 | Notion連携が動作し、作品が一通り掲載された時点 |
 | 切り替え時の停止 | サイトの一時停止を許容する |
 
