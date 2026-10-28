@@ -303,8 +303,11 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 - 証明書は既存の `asnomi.com` の証明書をデータソースで参照する。
 - 既存のディストリビューション・バケットはimportせず、このstateでは管理しない。
 - `attach_domain` は `false` で構築し、ドメインの付け替え作業で `true` に変更する。このとき、既存の `asnomi.com` のAレコードは `import` ブロックでstateに取り込んでから新しいディストリビューションへ向ける（上書きの許可ではなく、planで変更前後の向き先を確認できる方式を採る）。AAAAレコードは新規作成する。
+  - `import` ブロックは `envs/prod/cutover.tf` に置き、`for_each` で `attach_domain = true` のときだけ有効にする（Terraform 1.7以上）。取り込み済みの場合は何もしない。
+  - 付け替えのplanでは、S3バケットポリシーとデプロイロールのポリシーも「変更」と表示される。参照先のディストリビューションを同じapplyで変更するため値の確定がapply時に回るだけで、内容は変わらない。
 - 旧サイトのパスは `legacy_path_patterns` で管理し、新サイトに対応するページができたものから順に外す。
 
 **`envs/rehearsal`**
 - `dev.asnomi.com` の付け替えを通しで試すための一時環境。`envs/dev` のディストリビューションを「旧」、ここで作るディストリビューションを「新」に見立てる。
 - 証明書は `envs/dev` で発行済みのものを参照し、デプロイロールは作らない。リハーサル後に `terraform destroy` で削除する。
+- 本番と同じく「既存のレコードが残った状態で向け直す」条件を再現するため、`dev.asnomi.com` の既存のA/AAAAレコードを `import` で取り込む（`envs/rehearsal/cutover.tf`）。これらは `envs/dev` でも管理しているため、切り戻しでは `terraform state rm` でリハーサルのstateから外してから戻す。

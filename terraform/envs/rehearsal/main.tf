@@ -2,7 +2,7 @@
 # envs/devのディストリビューションを「旧」、ここで作るディストリビューションを「新」に見立てる。
 # リハーサル完了後に terraform destroy で削除する（設計書トラックD 9.3節）。
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.7.0"
 
   required_providers {
     aws = {

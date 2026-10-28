@@ -2,7 +2,7 @@
 # 新しいバケット・ディストリビューションを並行して作成し、代替ドメインの付け替えは attach_domain で切り替える。
 # 既存のディストリビューション・バケットはこのstateでは管理しない。
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.7.0"
 
   required_providers {
     aws = {
