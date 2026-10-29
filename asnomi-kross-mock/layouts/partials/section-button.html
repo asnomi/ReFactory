@@ -1,0 +1,11 @@
+{{- /*
+  トップの各欄（作品ギャラリー・お知らせ）の下に置くボタン。content/_index.md の各欄の button（enable・label・URL）を渡す。
+  見た目は about 欄の「プロフィールを見る」と同じ枠なしボタン（btn-transparent）。
+*/ -}}
+{{- with . }}
+{{- if .enable }}
+<div class="text-center mt-4">
+  <a href="{{ .URL | absURL }}" class="btn btn-transparent">{{ .label }}</a>
+</div>
+{{- end }}
+{{- end }}
