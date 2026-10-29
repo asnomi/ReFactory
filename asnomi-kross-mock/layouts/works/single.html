@@ -31,13 +31,13 @@
             </div>
           </div>
           {{ end }}
-          {{/* ジャンル: Notionで未選択の作品は categories が出力されないため、その場合は項目ごと出さない */}}
+          {{/* カテゴリ: Notionで未選択の作品は categories が出力されないため、その場合は項目ごと出さない */}}
           {{ with .Params.categories }}
           <div class="col-sm-6 mb-5">
             <div class="project-meta">
               <i class="ti-folder"></i>
               <div class="ms-3">
-                <h4>ジャンル</h4>
+                <h4>カテゴリ</h4>
                 <p>{{ delimit . ", " | humanize }}</p>
               </div>
             </div>

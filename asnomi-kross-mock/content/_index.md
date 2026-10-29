@@ -39,10 +39,20 @@ portfolio:
   title : "作品ギャラリー"
   item_show : 8 # PCは4列のため、4の倍数にすると最後の行が欠けない
   # portfolio item comes from 'content/english/portfolio' folder
+  # 欄の下のボタン（作品ギャラリーへのリンク）。enable: false で非表示
+  button:
+    enable : true
+    label : "もっと作品を見る"
+    URL : "works/"
 
 # blog -> news (T2-5: ニュース・近況エリア、ホームには最新3件)
 blog:
   enable : true
   title : "お知らせ・近況"
   # blog post comes from "content/english/blog" folder
+  # 欄の下のボタン（お知らせ一覧へのリンク）。enable: false で非表示
+  button:
+    enable : true
+    label : "お知らせ一覧"
+    URL : "news/"
 ---

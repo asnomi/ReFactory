@@ -199,6 +199,7 @@
       </div>
       {{ end }}
     </div>
+    {{ partial "section-button.html" .Params.portfolio.button }}
   </div>
 </section>
 <!-- /portfolio -->
@@ -220,6 +221,7 @@
       {{ .Render "post" }}
       {{ end }}
     </div>
+    {{ partial "section-button.html" .Params.blog.button }}
   </div>
 </section>
 <!-- /blog -->
