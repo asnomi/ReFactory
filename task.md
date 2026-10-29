@@ -14,7 +14,7 @@
 | --- | --- |
 | A（フロント/Kross） | ✅ 概ね完了（PR #11〜#24、2026-10-26）。実素材反映、フォント（Adobe Fonts）・配色・余白の調整、PurgeCSS修正とSwiper削除（1ページ約500KB→約130KB）、タイムゾーンをAsia/Tokyoに修正、お問い合わせフォームを廃止してメール・SNS受付に変更、更新手順書を作成。残: トラックBが追加した本文画像の描画フック（`layouts/_markup/render-image.html`）の確認 |
 | B（Notion連携） | ✅ 同期スクリプト完成（PR #23・#25・#26、2026-10-26）。`scripts/notion-sync/` でローカル同期が可能。設計書を既存の作品DB・ニュースDB構成に改訂済み。CI組み込みはトラックCへ引き継ぎ（設計書6章） |
-| C（CI/CD） | ✅ Notion同期・0件ガード（PR #38）、サンプル→Notion切り替え（PR #40）、本番デプロイ `deploy-prod`・6時間おきの定期実行（PR #41）、旧サイト用パスとの重複確認（PR #42）。🎯 次: 10/29 14:00 の `main` 初回マージで `deploy-prod` を確認。リリース後に本番の定期実行を有効化（`SCHEDULE_DEPLOY_PROD=true`）。**`prod` Environment は承認者なし（2026-10-28決定）**: 本番に出る入口を `dev`→`main` のマージに一本化し、そこを実質の承認とする。リリース後に `main` を保護する |
+| C（CI/CD） | ✅ Notion同期・0件ガード（PR #38）、サンプル→Notion切り替え（PR #40）、本番デプロイ `deploy-prod`・6時間おきの定期実行（PR #41）、旧サイト用パスとの重複確認（PR #42）、承認者なしへの対応（PR #43）。🎯 次: 10/29 17:00ごろの `main` 初回マージ（リリース目標は11/1。コード凍結10/31 21:00）で `deploy-prod` を確認。リリース後に本番の定期実行を有効化（`SCHEDULE_DEPLOY_PROD=true`）。**`prod` Environment は承認者なし（2026-10-28決定）**: 本番に出る入口を `dev`→`main` のマージに一本化し、そこを実質の承認とする。リリース後に `main` を保護する |
 | D（インフラ/Terraform） | ✅ dev環境のMVP対応完了。✅ 本番の構成調査・移行計画インプット完了。✅ ログ出力先バケット名の確保（PR #36）。✅ 本番の新リソース構築（10/28 apply。代替ドメインなしで稼働、旧サイトのパスの配信も確認済み）。🎯 次: 切り替え時のAレコード上書きへの対応（10/29 10:00まで）、devでの切り替えリハーサル（10/29 17:00のチェックポイント②まで） |
 
 **🚀 本番移行の方針（2026-10-26決定。詳細は非公開資料、公開できる方針は設計書トラックD 9章）**
@@ -216,8 +216,8 @@
     - [ ] 本番環境（`asnomi.com`）のTerraform化（`envs/prod/`追加）— 時期未定
   - **【トラックC担当】ワークフロー側の対応（トラックDの払い出し完了済み。上記🔴の修正見込みを踏まえて着手可）:**
     - [x] `dev`向けデプロイ（`deploy-dev.yml`）を実装済み。`environment: dev`＋OIDCでAssumeRoleが成功（PR #7、トラックDのsub修正後）
-    - [ ] GitHub Actionsワークフロー（T3-1）に、pushされたブランチ（`main`/`dev`）に応じてデプロイ先（S3バケット名・CloudFrontディストリビューションID）を切り替える分岐ロジックを追加 — `main`/本番はprod環境のTerraform化（トラックD）後に着手
-    - [ ] Secrets/Variables構成の見直し — dev分は現状リポジトリ直下のVariables（`S3_BUCKET_NAME`/`CLOUDFRONT_DISTRIBUTION_ID`/`AWS_DEPLOY_ROLE_ARN`）で運用中。prod追加時にGitHub Environments（`dev`/`prod`）単位の変数へ分離（設計書5.2節は単一環境前提のため、その時点で更新）
+    - [x] ブランチ別のデプロイ先の切り替え: 分岐ロジックではなく、ワークフローを分けて実現（`deploy-dev.yml`=`dev`→`dev` Environment、`deploy-prod.yml`=`main`→`prod` Environment。ビルドは共通の `build-site.yml`）。`prod` の初回実行は `main` 初回マージ後に確認
+    - [x] Variables構成: devはリポジトリ直下、prodは `prod` Environment のVariablesに登録済み（トラックD）。`deploy-prod` はdev値へのフォールバックを検知して失敗させる
   - [x] NF-202コスト試算（T4-4）への影響を反映（dev環境分のS3・CloudFront費用を追加試算）→ トラックD：増分は月額$1未満（設計書トラックD 7章。CloudFront Functionsも無料枠内）
   - 関連要件: F-204
 
