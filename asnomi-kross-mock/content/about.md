@@ -12,3 +12,18 @@ author_image: "images/profile/icon.jpg"
 淡くふわふわしたイラストと、飽和した音の層が織りなすオルタナティブ・ロック。作編曲から録音、イラスト制作まで全工程を一人で完結させることで、1ミリのズレもない純度の高い世界観を構築しています。
 
 J-Popの叙情性にサイケ、グランジ、シューゲイザーをミックスし、深く、静かに、音と絵が重なり合う没入体験を紡ぎます。
+
+**孤独を美しい静寂に書き換えるアトリエ asnomi studio**  
+
+淡くふわふわしたイラストと、エッジの効いたソリッドなサウンド。  
+正反対にある視覚・聴覚体験を作編曲からイラスト制作まで一人で行うことで、1ミリのズレもない高純度で鮮やかなコントラストを描いています。  
+
+キャッチーなメロディとストーリー性を軸に、ハードロックの力強さやシューゲイザーの透明感を繋ぎ合わせ、音と絵が互いの世界観を引き立て合う没入体験を紡ぎます。  
+
+--
+
+**asnomi studio: An atelier rewriting loneliness into beautiful silence.**
+
+Handling every step alone—from pale, fluffy illustrations to songwriting and recording—I craft a vivid, highly pure contrast between contrasting visual and auditory experiences.  
+Centered around catchy melodies and story-driven elements, my work fuses the raw power of hard rock with transparent shoegaze textures, weaving an immersive experience where music and visual art enhance each other's worlds.  
+
