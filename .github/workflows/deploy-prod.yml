@@ -1,0 +1,95 @@
+# main ブランチを Notion 同期 → ビルド → 本番（asnomi.com）へデプロイする。
+#
+# ビルド（同期・0件ガード・Hugo）は build-site.yml（devと共通）。deployジョブは `environment: prod`。
+# prod Environment は承認者なし（2026-10-28決定）。本番に出る入口を dev → main のマージに一本化し、そのマージを実質の承認とする。
+# OIDCの信頼ポリシーは prod Environment の sub に限定される（トラックD設計書9.2）。
+# AWSの値（S3_BUCKET_NAME / CLOUDFRONT_DISTRIBUTION_ID / AWS_DEPLOY_ROLE_ARN）は prod Environment の Variables から読む。
+name: deploy-prod
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'S3へデプロイする（OFFにすると、同期・0件ガード・ビルドの確認だけ行う）'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false # デプロイ(S3 sync)の途中打ち切りを避け、後続は待機させる
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-site.yml
+    with:
+      base_url: https://asnomi.com/
+    secrets: inherit
+
+  deploy:
+    needs: build
+    # Environment prod の Deployment branches は main のみ。main 以外の ref ではデプロイしない
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: prod # 承認者なし。main に入った内容は承認なしで本番へ出る（承認は dev → main のマージ）
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+      S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+    steps:
+      # Environment変数が未登録だと、同名のリポジトリ変数（= devの値）にフォールバックする。
+      # その状態で本番ビルドをdevのバケットへ流さないよう、値が揃っていて dev のものでないことを確認する。
+      - name: デプロイ先の確認
+        run: |
+          for name in AWS_DEPLOY_ROLE_ARN S3_BUCKET_NAME CLOUDFRONT_DISTRIBUTION_ID; do
+            value="${!name}"
+            if [ -z "$value" ]; then
+              echo "::error::prod Environment の Variables ${name} が未設定です"
+              exit 1
+            fi
+            case "$value" in
+              *dev*)
+                echo "::error::${name} が dev 用の値のようです。prod Environment の Variables を確認してください"
+                exit 1
+                ;;
+            esac
+          done
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: public/
+
+      # 本番のCloudFrontは、旧サイトのパスを現行バケット（2つ目のオリジン）へ振り分ける（トラックD設計書9章）。
+      # Hugoがこれらのパスにファイルを出力すると、アップロードはされても表示されないため、出力されていたら止める。
+      # 旧ページを新サイトのページへ置き換えるときは、トラックD側で振り分けからそのパスを外してから、ここの一覧も更新する。
+      - name: 旧サイト用パスとの重複確認
+        run: |
+          conflict=0
+          for p in contents img hyouhon1422 style favicon.ico discography.html biography.html; do
+            if [ -e "public/$p" ]; then
+              echo "::error::public/$p が出力されています。旧サイト用の振り分け対象パスのため、本番では表示されません"
+              conflict=1
+            fi
+          done
+          exit $conflict
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Sync to S3
+        run: aws s3 sync public/ "s3://${S3_BUCKET_NAME}" --delete
+
+      - name: Invalidate CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" --paths "/*"

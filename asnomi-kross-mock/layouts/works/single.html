@@ -31,15 +31,18 @@
             </div>
           </div>
           {{ end }}
+          {{/* カテゴリ: Notionで未選択の作品は categories が出力されないため、その場合は項目ごと出さない */}}
+          {{ with .Params.categories }}
           <div class="col-sm-6 mb-5">
             <div class="project-meta">
               <i class="ti-folder"></i>
               <div class="ms-3">
-                <h4>ジャンル</h4>
-                <p>{{ delimit .Params.categories ", " | humanize }}</p>
+                <h4>カテゴリ</h4>
+                <p>{{ delimit . ", " | humanize }}</p>
               </div>
             </div>
           </div>
+          {{ end }}
           {{/* 価格: 数値で受け取り「1,500円」と表示。0円は「無料」（with だと0が「値なし」扱いになるため isset で判定） */}}
           {{ if isset .Params "price" }}
           <div class="col-sm-6 mb-5">

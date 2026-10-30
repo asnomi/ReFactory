@@ -1,18 +1,20 @@
 {{- /*
   ニュース記事カード（ホームのお知らせ・/news/一覧で使用）。
-  Kross標準から、①画像を任意に（未指定でも崩れない）、②日付を表示、③閉じていない<a>タグを修正。
+  Kross標準から、①画像を任意に（未指定でも崩れない）、②日付を表示、③閉じていない<a>タグを修正、
+  ④本文の抜粋ではなく要約（description）を表示。要約が空の記事は、本文の先頭を文字だけにして短く切る。
 */ -}}
 <div class="col-lg-4 col-sm-6 mb-4">
   <article class="card shadow overflow-hidden">
     {{ with .Params.image }}
     <a href="{{ $.Permalink }}" title="{{ $.Title }}">
-      {{ partial "image.html" (dict "Src" . "Alt" $.Title "Size" `500x`) }}
+      {{/* 高精細ディスプレイ向けに800pxで出力し、表示はカードの幅に合わせる（w-100。高さは custom.scss の img.img で縦横比を維持） */}}
+      {{ partial "image.html" (dict "Src" . "Alt" $.Title "Size" `800x` "Class" `w-100`) }}
     </a>
     {{ end }}
     <div class="card-body p-4">
       <p class="text-light small mb-2">{{ .Date.Format "2006年1月2日" }}</p>
       <h3 class="h4 card-title"><a class="text-dark" href="{{ .Permalink }}">{{ .Title }}</a></h3>
-      <p class="card-text">{{ .Summary }}</p>
+      <p class="card-text">{{ with .Description }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 80 }}{{ end }}</p>
       <a href="{{ .Permalink }}" class="btn btn-sm btn-accent">続きを読む <span class="visually-hidden">詳細</span></a>
     </div>
   </article>

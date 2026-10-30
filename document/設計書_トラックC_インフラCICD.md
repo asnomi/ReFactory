@@ -6,7 +6,7 @@
 
 **対応要件:** F-201, F-202, F-203, NF-101, NF-202
 
-**Document Version:** 0.7（Notion同期の組み込みと0件ガードを追加。10章参照）
+**Document Version:** 1.0（prod Environmentは承認者なしに決定。既定ブランチdevへの変更を反映。11・12章参照）
 
 > **📌 2026-10-23 方針変更:** 最優先は「Krossモックを `dev.asnomi.com` で見られる状態にする」こと。実装済みの最小ワークフローは [`.github/workflows/deploy-dev.yml`](../.github/workflows/deploy-dev.yml)（**9章**参照）。Notion同期・cron・本番(main)デプロイ・`prod` Environment分離は**後続扱い**で、2〜5章のフル版設計はその際のベースとして残す。なお当初の「Environmentを使わない」方針は、トラックDが信頼ポリシーをEnvironment形式へ変更したため撤回し、deployジョブに`environment: dev`を付けた（9.2参照）。
 
@@ -500,9 +500,76 @@ AWS系の値（`S3_BUCKET_NAME` 等）は従来どおりdeployジョブのEnviro
 
 `deploy-dev` の `workflow_dispatch` に入力 `deploy`（既定ON）を追加した。OFFにすると、同期・0件ガード・ビルドまでを行いデプロイしない。Notionの更新内容を本番反映前に確認したいときに使う。
 
-> **注意（GitHubの仕様）:** `workflow_dispatch` は**既定ブランチ（`main`）にワークフローファイルが存在しないと実行できない**。`main` へ初回マージするまでは、Actionsの「Run workflow」や `gh workflow run` は使えず、`dev` へのpush（またはマージ）でのみ実行される。
+> **注意（GitHubの仕様）:** `workflow_dispatch` は**既定ブランチにワークフローファイルが存在しないと実行できない**。既定ブランチは `dev` に変更済み（2026-10-28）のため、`deploy-dev` は手動実行できる。`deploy-prod` は `main` に初回マージするまでは実行できない。`deploy-prod` の `push`（`main`）も同様。
 
 ### 10.5 マージ前の確認事項
 
 - `NOTION_API_KEY`（と、Variablesにしない場合はDB ID2つ）を登録してからマージする。未登録のままマージすると、`dev` へのpushごとに同期ステップで失敗する（**デプロイは行われないため既存のdevサイトは壊れない**）。
 - サンプルと同じスラッグの行をNotionで公開ONにすると、同期側は警告して出力しない（サンプルを上書きしない）。サンプル削除は別PR（設計書_Notionデータ連携 6.2節）で行う。
+
+
+---
+
+## 11. 定期実行（2026-10-28〜）
+
+[`scheduled-deploy.yml`](../.github/workflows/scheduled-deploy.yml)。6時間おき（`17 */6 * * *`、UTC。T0-1・2.2節の決定どおり）に、各デプロイワークフローを起動する。Notionの更新と、未来日付で公開待ちのニュースを反映するため。
+
+### 11.1 `schedule` を各デプロイワークフローに直接書かない理由
+
+`schedule` は**既定ブランチのワークフローだけ**が動き、実行時の `github.ref` も既定ブランチになる。**既定ブランチは `dev`**（2026-10-28に `main` から変更）。
+
+- `dev` 向けは、既定ブランチが `dev` なので `schedule` を直接書いても動く。
+- **`prod` 向けは直接書けない。** 本番は `main` をビルドし、`prod` Environment の Deployment branches は `main` のみのため、`dev` のrefで動く `schedule` からは `deploy-prod` のdeployジョブを実行できない。
+
+このため、devとprodで方式を分けず、`scheduled-deploy.yml` は**何もビルドせず**、`gh workflow run` で各ワークフローを正しいref（devは `dev`、prodは `main`）に `workflow_dispatch` するだけにした。`GITHUB_TOKEN` による `workflow_dispatch` は、再帰防止の例外として新しい実行を起動できる（`permissions: actions: write`）。
+
+### 11.2 対象と有効化
+
+| 対象 | 起動条件 | ref |
+| --- | --- | --- |
+| `deploy-dev` | 常に起動 | `dev` |
+| `deploy-prod` | リポジトリ変数 `SCHEDULE_DEPLOY_PROD` が `true` のときだけ | `main` |
+
+「リリース後に本番も定期実行する」は、コード変更なしで**変数を `true` にするだけ**で有効にする（リリース当日のPRを避けるため）。
+
+### 11.3 制約・注意
+
+- **dev の定期実行は、既定ブランチが `dev` のため `main` 初回マージ前から動いている**（このファイルが `dev` に入った時点から）。`workflow_dispatch` も `dev` 上のファイルで実行できる。
+- **prod の定期実行は、`main` に `deploy-prod.yml` が入ってから**でないと起動できない（`gh workflow run deploy-prod.yml --ref main` は `main` 上のファイルを使う）。初回マージ前に変数 `SCHEDULE_DEPLOY_PROD` を `true` にすると、このステップだけが失敗する。**変数はリリース後に設定する。**
+- **prod の定期実行は承認なしで本番へ出る。** `prod` Environment は承認者なしに決定した（2026-10-28、12.4参照）。本番に出る入口を `dev` → `main` のマージに一本化し、そこを実質の承認とする。そのため `main` に入った内容は、`push` でも定期実行でも承認なしでデプロイされ、`SCHEDULE_DEPLOY_PROD=true` の間は6時間ごとにNotionの更新も反映される。止めたいときは変数を `false`（または削除）にする。
+- パブリックリポジトリでは、**60日間リポジトリの動きが無いと定期実行が自動停止**される。その場合はActionsタブから再有効化する。
+- 定期実行はGitHub側の都合で数分〜十数分遅れることがある。
+
+---
+
+## 12. 本番デプロイ `deploy-prod`（2026-10-28〜）
+
+[`deploy-prod.yml`](../.github/workflows/deploy-prod.yml)。`main` へのpushと `workflow_dispatch` で実行する。
+
+### 12.1 構成
+
+- `build`: `build-site.yml`（devと共通。Notion同期 → 0件ガード → Hugo）を `base_url: https://asnomi.com/` で呼び出す。
+- `deploy`: `environment: prod`（承認者なし。承認は `dev` → `main` のマージで行う。12.4参照）、`if: github.ref == 'refs/heads/main'`。OIDC → `aws s3 sync public/ s3://<bucket> --delete` → Invalidation `/*`。
+- `workflow_dispatch` の入力 `deploy`（既定ON）は dev と同じ。OFFで同期・ガード・ビルドのみ。
+
+### 12.2 値の読み取りと取り違え防止
+
+`S3_BUCKET_NAME` / `CLOUDFRONT_DISTRIBUTION_ID` / `AWS_DEPLOY_ROLE_ARN` を **`prod` Environment の Variables** から読む（トラックDが払い出し）。
+
+Environment変数が未登録だと、**同名のリポジトリ変数（現状はdevの値）にフォールバックする**。本番ビルドをdevのバケットへ流す事故を防ぐため、deployジョブの先頭で、3つの値が空でないこと、かつ `dev` を含まないことを確認し、違えば失敗させる。
+
+### 12.3 初回リリース（`main` 初回マージ 10/29 17:00ごろ〜リリース 11/1。コード凍結 10/31 21:00）
+
+- 初回マージで `deploy-prod` が起動し、新しい本番バケットへデプロイされる（承認なし。マージが承認）。この時点では `asnomi.com` は旧サイトのまま。確認は新ディストリビューションの `*.cloudfront.net` で行う。
+- **確認時の注意:** ビルドは `baseURL = https://asnomi.com/` 固定のため、ページ内の絶対URL（リンク等）は旧サイトの `asnomi.com` を指す。`*.cloudfront.net` 上のリンクをたどると旧サイトに移動する。ページ単位の表示確認には支障がないが、回遊の確認は切り替え後に行う。
+- `robots`／`noindex` はホスト名（`asnomi.com`）で判定されるため（トラックA実装）、baseURLがそのままなら本番として扱われる。
+
+### 12.4 トラックDの回答と決定事項（2026-10-28）
+
+- **`--delete` と旧ファイル → 問題なし（解消）。** 旧サイトのファイルは新バケットに置かず、現行バケットを2つ目のオリジンとして配信する。新ディストリビューションは次のパスだけを現行バケットへ振り分け、それ以外はすべて新バケットから配信する: `/contents/*`・`/img/*`・`/hyouhon1422/*`・`/discography.html`・`/biography.html`・`/style/*`・`/favicon.ico`。新バケットにはHugoの出力だけを置くので `s3 sync --delete` で旧ファイルは消えず、本番用ロールに現行バケットへの権限は付けない。
+  - **Hugoの出力が上記パスに重なると、アップロードされても表示されない。** 現状のソースは `/images/` を使っており重なりはない（ビルド出力で確認済み）。`/img/` と `/favicon.ico` は使わない。**`deploy-prod` のdeployジョブに、これらが `public/` に出ていたら失敗させる確認ステップを追加した。** 旧ページを新サイトのページに置き換えるときは、トラックD側で振り分けから外してから、この一覧（`deploy-prod.yml`）も更新する。
+- **デプロイ先の確認ステップ（12.2）は通る。** 本番の値は `dev` を含まない（バケット `asnomi-prod-site-…`、ロール `github-actions-prod-deploy`）。ディストリビューションIDは大文字の英数字で、小文字の `dev` に一致しない。dev値にフォールバックしても、バケット名とロールで検知できる。3つの値は `terraform apply` 後に払い出される。
+- **`*.cloudfront.net` でリンクが旧サイトへ飛ぶ件:** インフラ側の対応は不要。切り替え前の確認はページ単位で行う。
+- **prod の承認方針 → 決定: `prod` Environment は承認者なし（A案）。** 本番に出る入口を `dev` → `main` のマージに一本化し、そこを実質の承認とする。承認なしの別Environment（`prod-auto`）は作らない。`deploy-prod.yml` は `environment: prod` のままで、ジョブ構成の変更は不要。これにより定期実行（`SCHEDULE_DEPLOY_PROD=true`）も承認待ちにならず、`main` の内容が6時間ごとに自動で反映される。`prod` の Deployment branches は引き続き `main` のみ。
+- **定期実行の有効化:** リリース後にユーザーがリポジトリ変数 `SCHEDULE_DEPLOY_PROD=true` を設定する。有効化後の初回の起動は、次の定時（UTC 0・6・12・18時の17分）を待つか、`scheduled-deploy` を手動実行して確認する（11.3参照）。
+- Actions上での `deploy-prod` の実行は未確認（`main` に初回マージして初めて動く）。
