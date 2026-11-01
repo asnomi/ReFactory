@@ -23,9 +23,9 @@ variable "hosted_zone_id" {
 }
 
 variable "attach_domain" {
-  description = "asnomi.comを新しいディストリビューションに付け、A/AAAAレコードを向けるか。ドメインの付け替え作業でtrueにする（手順は非公開資料）"
+  description = "asnomi.comを新しいディストリビューションに付け、A/AAAAレコードを向けるか（2026-11-01に付け替え済みのためtrue。falseにすると代替ドメインが外れ、A/AAAAが削除される）"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "legacy_bucket_name" {
