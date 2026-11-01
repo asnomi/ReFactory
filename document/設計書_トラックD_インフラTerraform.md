@@ -302,7 +302,7 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 - 新しいバケット（`asnomi-prod-site-566759952246`）・ディストリビューション・OAC・CloudFront Function（`prod-index-rewrite`）・デプロイロール（`github-actions-prod-deploy`、`sub` は `environment:prod`）を作成する。
 - 証明書は既存の `asnomi.com` の証明書をデータソースで参照する。
 - 既存のディストリビューション・バケットはimportせず、このstateでは管理しない。
-- `attach_domain` は `false` で構築し、ドメインの付け替え作業で `true` に変更する。このとき、既存の `asnomi.com` のAレコードは `import` ブロックでstateに取り込んでから新しいディストリビューションへ向ける（上書きの許可ではなく、planで変更前後の向き先を確認できる方式を採る）。AAAAレコードは新規作成する。
+- `attach_domain` は `false` で構築し、ドメインの付け替え作業で `true` に変更する（2026-11-01に付け替え済み。既定値を `true` に変更）。このとき、既存の `asnomi.com` のAレコードは `import` ブロックでstateに取り込んでから新しいディストリビューションへ向ける（上書きの許可ではなく、planで変更前後の向き先を確認できる方式を採る）。AAAAレコードは新規作成する。
   - `import` ブロックは `envs/prod/cutover.tf` に置き、`for_each` で `attach_domain = true` のときだけ有効にする（Terraform 1.7以上）。取り込み済みの場合は何もしない。
   - 付け替えのplanでは、S3バケットポリシーとデプロイロールのポリシーも「変更」と表示される。参照先のディストリビューションを同じapplyで変更するため値の確定がapply時に回るだけで、内容は変わらない。
 - 旧サイトのパスは `legacy_path_patterns` で管理し、新サイトに対応するページができたものから順に外す。
