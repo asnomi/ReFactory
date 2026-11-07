@@ -1,0 +1,53 @@
+# デプロイの前に、バケットの今の状態を前回のデプロイの記録と照合する（Issue #45、改悪検知）。
+# 差分があっても失敗にはしない（直後のデプロイで正しい内容に戻すため）。呼び出し側が最後に drift を見て失敗させる。
+# 前回の記録が無い場合（初回・保持期間切れ）は、警告だけ出して照合を飛ばす。
+# 呼び出し側のジョブには、AWS認証済みであることと、`permissions: actions: read` が必要。
+name: bucket-verify
+description: バケットの現在の状態を、前回デプロイ時の記録と照合する
+
+inputs:
+  bucket:
+    description: 照合するS3バケット名
+    required: true
+  artifact-name:
+    description: 記録のArtifact名（環境ごとに分ける）
+    required: true
+
+outputs:
+  drift:
+    description: 前回の記録と差分があれば true
+    value: ${{ steps.verify.outputs.drift }}
+  skipped:
+    description: 前回の記録が無く、照合を飛ばしたら true
+    value: ${{ steps.verify.outputs.skipped }}
+
+runs:
+  using: composite
+  steps:
+    - name: 前回の記録を取得
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        NAME: ${{ inputs.artifact-name }}
+      run: |
+        # 一覧の取得に失敗（権限不足など）したら、照合が黙って無効にならないよう、ここで失敗させる。
+        # 記録が無い・期限切れのときだけ、何も出力されず照合を飛ばす。
+        art=$(gh api "repos/${GH_REPO}/actions/artifacts?name=${NAME}&per_page=1" \
+          --jq '.artifacts[0] | select(.expired == false) | .id')
+        rm -rf "${RUNNER_TEMP}/previous"
+        mkdir -p "${RUNNER_TEMP}/previous"
+        if [ -n "${art}" ]; then
+          gh api "repos/${GH_REPO}/actions/artifacts/${art}/zip" > "${RUNNER_TEMP}/previous.zip"
+          unzip -q -o "${RUNNER_TEMP}/previous.zip" -d "${RUNNER_TEMP}/previous"
+          echo "前回の記録: artifact ${art}"
+        else
+          echo "前回の記録: なし"
+        fi
+
+    - name: 照合
+      id: verify
+      shell: bash
+      env:
+        BUCKET: ${{ inputs.bucket }}
+      run: node "${GITHUB_WORKSPACE}/scripts/ci/bucket-manifest.mjs" verify --bucket="${BUCKET}" --previous="${RUNNER_TEMP}/previous/manifest.json"
