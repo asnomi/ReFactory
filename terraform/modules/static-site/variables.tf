@@ -30,6 +30,12 @@ variable "enable_versioning" {
   default     = true
 }
 
+variable "noncurrent_version_expiration_days" {
+  description = "古いバージョン（上書き・削除された過去のファイル）を自動削除するまでの日数。未指定（null）の場合は削除しない。デプロイのたびに全ファイルが再アップロードされる環境で古いバージョンが溜まり続けるのを防ぐ"
+  type        = number
+  default     = null
+}
+
 variable "attach_domain" {
   description = "domain_nameをディストリビューションの代替ドメインに付け、A/AAAAレコードを作成するか。falseの場合はCloudFrontの既定ドメイン（*.cloudfront.net）・既定証明書のみで構築する（ドメインの付け替え前の並行稼働用）"
   type        = bool
