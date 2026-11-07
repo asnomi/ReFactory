@@ -296,7 +296,7 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 | `acm_certificate_arn` | `null` | 既存の証明書を使う場合に指定する。指定時は証明書を新規発行しない |
 | `legacy_origin` | `null` | 旧サイトのファイルを既存のバケットから配信する2つ目のオリジンと、そのパスのビヘイビア。既存バケット側の設定は変更しない |
 | `oac_name` | `null` | OACの名前（同じドメイン名で2つ目のディストリビューションを作るリハーサル用） |
-| `noncurrent_version_expiration_days` | `null` | 古いバージョンを自動削除するまでの日数（`envs/prod` は30日。デプロイのたびに全ファイルが再アップロードされ、古いバージョンが溜まるため） |
+| `noncurrent_version_expiration_days` | `null` | 古いバージョンを自動削除するまでの日数（`envs/prod` は30日、`envs/dev` は7日。デプロイのたびに全ファイルが再アップロードされ、古いバージョンが溜まるため） |
 | `create_deploy_role` | `true` | GitHub Actions用のデプロイロールを作るか（リハーサル用の一時環境では作らない） |
 
 **`envs/prod`**
