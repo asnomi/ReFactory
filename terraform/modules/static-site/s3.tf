@@ -18,6 +18,33 @@ resource "aws_s3_bucket_versioning" "site" {
   }
 }
 
+resource "aws_s3_bucket_lifecycle_configuration" "site" {
+  count  = var.noncurrent_version_expiration_days == null ? 0 : 1
+  bucket = aws_s3_bucket.site.id
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = var.noncurrent_version_expiration_days
+    }
+
+    # 古いバージョンが消えたあとに残る削除マーカーも片付ける
+    expiration {
+      expired_object_delete_marker = true
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.site]
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
   bucket = aws_s3_bucket.site.id
   rule {
