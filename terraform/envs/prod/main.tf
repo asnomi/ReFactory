@@ -74,6 +74,9 @@ module "prod_site" {
   attach_domain       = var.attach_domain
   acm_certificate_arn = data.aws_acm_certificate.site.arn
 
+  # 定期実行のたびに全ファイルが再アップロードされるため、古いバージョンは30日で削除する
+  noncurrent_version_expiration_days = 30
+
   legacy_origin = {
     domain_name            = data.aws_s3_bucket.legacy.bucket_regional_domain_name
     origin_access_identity = "origin-access-identity/cloudfront/${one(data.aws_cloudfront_origin_access_identities.legacy.ids)}"

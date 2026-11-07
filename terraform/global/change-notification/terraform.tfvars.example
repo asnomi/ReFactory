@@ -1,0 +1,2 @@
+# terraform.tfvars にコピーして使う（terraform.tfvars は .gitignore 対象。公開リポジトリにメールアドレスを書かない）
+notification_email = "you@example.com"

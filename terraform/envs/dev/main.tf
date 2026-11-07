@@ -53,6 +53,9 @@ module "dev_site" {
   enable_versioning = true
   oidc_provider_arn = data.terraform_remote_state.global_oidc.outputs.oidc_provider_arn
 
+  # 定期実行のたびに全ファイルが再アップロードされるため、古いバージョンは7日で削除する（検証環境のため本番より短い）
+  noncurrent_version_expiration_days = 7
+
   # トラックCのワークフロー（.github/workflows/deploy-dev.yml）はdeployジョブに`environment: dev`を付けるため、
   # subはEnvironment形式になる。ブランチの限定はGitHubのdev Environmentの「Deployment branches = devのみ」で担保する。
   github_oidc_subjects = ["repo:${var.github_repo_subject}:environment:dev"]
