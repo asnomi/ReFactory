@@ -49,18 +49,27 @@ resource "aws_cloudwatch_event_target" "config_change_sns" {
   rule     = aws_cloudwatch_event_rule.config_change.name
   arn      = aws_sns_topic.change_notification.arn
 
+  # 本文には値が単純な文字列の項目だけを差し込む。
+  # requestParameters をまるごと差し込むと、ポリシー本文などの引用符を含む値で本文が不正な文字列になり、送信に失敗する。
+  # 対象のリソースは、イベントの種類ごとに使われる項目（存在しない項目は空になる）を並べて示す。
   input_transformer {
     input_paths = {
-      eventName = "$.detail.eventName"
-      source    = "$.detail.eventSource"
-      region    = "$.detail.awsRegion"
-      time      = "$.detail.eventTime"
-      user      = "$.detail.userIdentity.arn"
-      ip        = "$.detail.sourceIPAddress"
-      error     = "$.detail.errorCode"
-      params    = "$.detail.requestParameters"
+      eventName    = "$.detail.eventName"
+      source       = "$.detail.eventSource"
+      region       = "$.detail.awsRegion"
+      time         = "$.detail.eventTime"
+      user         = "$.detail.userIdentity.arn"
+      ip           = "$.detail.sourceIPAddress"
+      error        = "$.detail.errorCode"
+      bucket       = "$.detail.requestParameters.bucketName"
+      id           = "$.detail.requestParameters.id"
+      name         = "$.detail.requestParameters.name"
+      hostedZoneId = "$.detail.requestParameters.hostedZoneId"
+      roleName     = "$.detail.requestParameters.roleName"
+      policyName   = "$.detail.requestParameters.policyName"
+      policyArn    = "$.detail.requestParameters.policyArn"
     }
-    input_template = "\"[asnomi AWS設定変更] <eventName> (<source> / <region>)\\n日時(UTC): <time>\\n実行者: <user>\\n接続元: <ip>\\nエラー（失敗した操作のみ）: <error>\\nリクエスト: <params>\""
+    input_template = "\"[asnomi AWS設定変更] <eventName> (<source> / <region>)\\n日時(UTC): <time>\\n実行者: <user>\\n接続元: <ip>\\nエラー（失敗した操作のみ）: <error>\\n対象: bucket=<bucket> id=<id> name=<name> hostedZoneId=<hostedZoneId> roleName=<roleName> policyName=<policyName> policyArn=<policyArn>\\n詳細はCloudTrailのイベント履歴で確認する\""
   }
 }
 
