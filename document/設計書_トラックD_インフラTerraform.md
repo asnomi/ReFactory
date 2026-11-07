@@ -312,3 +312,29 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
 - `dev.asnomi.com` の付け替えを通しで試すための一時環境。`envs/dev` のディストリビューションを「旧」、ここで作るディストリビューションを「新」に見立てる。
 - 証明書は `envs/dev` で発行済みのものを参照し、デプロイロールは作らない。リハーサル後に `terraform destroy` で削除する。
 - 本番と同じく「既存のレコードが残った状態で向け直す」条件を再現するため、`dev.asnomi.com` の既存のA/AAAAレコードを `import` で取り込む（`envs/rehearsal/cutover.tf`）。これらは `envs/dev` でも管理しているため、切り戻しでは `terraform state rm` でリハーサルのstateから外してから戻す。
+- 2026-11-07に削除済み（`terraform destroy`）。
+
+---
+
+## 10. 設定変更の通知（改ざん検知、Issue #45）
+
+AWSの設定が変更されたときにメールで通知する。`terraform/global/change-notification/` で管理する。
+
+```mermaid
+flowchart LR
+    CT[CloudTrail<br/>asnomi-management-events<br/>全リージョン・書き込みのみ] --> EBU[EventBridge us-east-1<br/>asnomi-config-change]
+    CT --> EBT[EventBridge ap-northeast-1<br/>asnomi-s3-config-change-forward]
+    EBT -- "S3の変更を転送" --> EBU
+    EBU --> SNS[SNS us-east-1<br/>asnomi-change-notification] --> Mail((メール))
+```
+
+- **トレイル**: EventBridgeでCloudTrailのイベントを受け取るには、記録中のトレイルが必要（AWS仕様）。管理イベントの書き込みのみを全リージョンで記録し、記録は専用バケットに90日保存する。
+- **ルールの置き場所**: CloudFront・Route53・IAMのイベントは us-east-1 のEventBridgeに届くため、通知のルールとSNSは us-east-1 に置く。S3のバケット設定のイベントはバケットのリージョンに届くため、ap-northeast-1 のルールで us-east-1 のイベントバスへ転送し、同じSNSから通知する。
+- **対象のイベント**（失敗した操作も通知する）:
+  - CloudFront: ディストリビューション・代替ドメイン・Function・OAC/OAIの作成・変更・削除
+  - Route53: レコードの変更、ホストゾーンの作成・削除
+  - IAM: ロール・ロールのポリシー・管理ポリシー・OIDCプロバイダの作成・変更・削除
+  - S3: バケットポリシー、パブリックアクセスブロック（バケット・アカウント）、ACL、オブジェクト所有者の設定、バージョン管理・ライフサイクルの変更
+- **デプロイでは通知しない**: S3へのファイルのアップロードはデータイベントでトレイルの記録対象外、キャッシュの無効化（`CreateInvalidation`）は対象のイベント名に含めない。
+- **通知先**: メールアドレスは公開リポジトリに書かず、ローカルの `terraform.tfvars`（`.gitignore` 対象）で渡す（`terraform.tfvars.example` を参照）。購読はAWSから届く確認メールで承認すると有効になる。
+- **Terraformのapply自体も通知される**（意図した変更でも届く。届いたメールが自分の作業と一致するかを確認する）。
