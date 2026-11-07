@@ -28,32 +28,6 @@ variable "attach_domain" {
   default     = true
 }
 
-variable "legacy_bucket_name" {
-  description = "旧サイトのファイルが置かれている既存のバケット名"
-  type        = string
-  default     = "asnomi.com"
-}
-
-variable "legacy_oai_comment" {
-  description = "既存のバケットの読み取りに使うOAIのコメント（OAIの特定に使う）"
-  type        = string
-  default     = "s3host-20190303"
-}
-
-variable "legacy_path_patterns" {
-  description = "既存のバケットから配信する旧サイトのパス。新サイトに対応するページができたものから順に外し、リダイレクトに置き換える"
-  type        = list(string)
-  default = [
-    "/contents/*",
-    "/img/*",
-    "/hyouhon1422/*",
-    "/discography.html",
-    "/biography.html",
-    "/style/*",
-    "/favicon.ico",
-  ]
-}
-
 variable "github_repo_subject" {
   description = "OIDCトークンのsubに現れるリポジトリ表記（<owner>@<owner_id>/<repo>@<repo_id>。設計書トラックD 6.5節）"
   type        = string
