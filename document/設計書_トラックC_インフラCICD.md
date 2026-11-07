@@ -6,7 +6,7 @@
 
 **対応要件:** F-201, F-202, F-203, NF-101, NF-202
 
-**Document Version:** 1.0（prod Environmentは承認者なしに決定。既定ブランチdevへの変更を反映。11・12章参照）
+**Document Version:** 1.1（デプロイ時の照合（改ざん検知）を追加。13章参照）
 
 > **📌 2026-10-23 方針変更:** 最優先は「Krossモックを `dev.asnomi.com` で見られる状態にする」こと。実装済みの最小ワークフローは [`.github/workflows/deploy-dev.yml`](../.github/workflows/deploy-dev.yml)（**9章**参照）。Notion同期・cron・本番(main)デプロイ・`prod` Environment分離は**後続扱い**で、2〜5章のフル版設計はその際のベースとして残す。なお当初の「Environmentを使わない」方針は、トラックDが信頼ポリシーをEnvironment形式へ変更したため撤回し、deployジョブに`environment: dev`を付けた（9.2参照）。
 
@@ -573,3 +573,49 @@ Environment変数が未登録だと、**同名のリポジトリ変数（現状�
 - **prod の承認方針 → 決定: `prod` Environment は承認者なし（A案）。** 本番に出る入口を `dev` → `main` のマージに一本化し、そこを実質の承認とする。承認なしの別Environment（`prod-auto`）は作らない。`deploy-prod.yml` は `environment: prod` のままで、ジョブ構成の変更は不要。これにより定期実行（`SCHEDULE_DEPLOY_PROD=true`）も承認待ちにならず、`main` の内容が6時間ごとに自動で反映される。`prod` の Deployment branches は引き続き `main` のみ。
 - **定期実行の有効化:** リリース後にユーザーがリポジトリ変数 `SCHEDULE_DEPLOY_PROD=true` を設定する。有効化後の初回の起動は、次の定時（UTC 0・6・12・18時の17分）を待つか、`scheduled-deploy` を手動実行して確認する（11.3参照）。
 - Actions上での `deploy-prod` の実行は未確認（`main` に初回マージして初めて動く）。
+
+
+---
+
+## 13. デプロイ時の照合（改ざん検知）（2026-11-07〜、Issue #45）
+
+デプロイ以外の手段でバケットの中身が追加・変更・削除されたことに気づくための仕組み。サイトの死活監視は行わない（CloudFront + S3 の構成では落ちにくいため）。設定変更（CloudFront・Route53・S3のポリシー・IAM）の検知はトラックD側（CloudTrail → EventBridge → SNS）が担当する。
+
+### 13.1 流れ
+
+`deploy-dev` と `deploy-prod` の deployジョブに、次を追加した。
+
+1. **デプロイ前の照合**（AWS認証の直後）: バケットの今のファイル一覧（キーとETag・サイズ）を、前回のデプロイの記録と比べる。差分（追加・変更・削除）があれば、一覧をログとジョブサマリーに出す。**デプロイは止めない。**
+2. 通常どおり `s3 sync --delete` と Invalidation を行う。これで、改ざんされたファイルは正しい内容に戻り、追加されたファイルは削除される。
+3. **デプロイ後の記録**: バケットのファイル一覧とETagを記録して、GitHubのArtifact（`deploy-manifest-dev` / `deploy-manifest-prod`）に保存する。S3には置かない。あわせて、デプロイしたファイル（`public/`）のMD5とバケットのETagを突き合わせ、一致しなければ失敗させる（「正しい中身に戻った」ことの確認）。
+4. **最後に、1で差分があった場合はジョブを失敗させる。** 失敗はGitHubの通知メールで届く。2・3は完了しているので、サイトは正しい内容に戻っている。
+
+### 13.2 実装
+
+| ファイル | 役割 |
+| --- | --- |
+| [`scripts/ci/bucket-manifest.mjs`](../scripts/ci/bucket-manifest.mjs) | `verify`（照合）・`record`（記録＋突き合わせ）。AWS CLIの `s3api list-objects-v2` の結果を使う。単体テスト付き |
+| [`.github/actions/bucket-verify`](../.github/actions/bucket-verify/action.yml) | 前回の記録のArtifactを取得し、`verify` を実行する。出力 `drift` / `skipped` |
+| [`.github/actions/bucket-record`](../.github/actions/bucket-record/action.yml) | `record` を実行し、記録をArtifactとして保存する |
+
+deployジョブは同梱のアクションとスクリプトを使うため、`.github/actions` と `scripts/ci` だけをsparse checkoutする。
+
+### 13.3 前回の記録がない場合
+
+初回、またはArtifactの保持期間切れのときは、照合を飛ばして警告（`::warning::`）だけを出す。デプロイと記録は通常どおり行う。保持期間は**30日**（定期実行の間隔 6時間より十分長い）。Artifactの一覧の取得に失敗（権限不足など）した場合は、照合が黙って無効にならないよう、ジョブを失敗させる。
+
+### 13.4 権限
+
+- AWS: 一覧の取得は `s3:ListBucket` だけで足りる。デプロイ用ロールは既に持っているため、**トラックDへの依頼は不要**（`s3:GetObject` は不要）。
+- GitHub: deployジョブに `actions: read` を追加（前回の記録のArtifactの一覧・取得に必要）。
+
+### 13.5 前提・制約
+
+- ETagは、暗号化がSSE-S3（AES256、現状の設定）でマルチパートアップロードでないオブジェクトならMD5と一致する。SSE-KMSに変えた場合は、MD5との突き合わせ（デプロイ後の確認）が成り立たなくなる。マルチパートのETag（`-` を含む）は突き合わせの対象外（件数だけ表示）。
+- 照合できるのは「前回のデプロイの直後から、今回のデプロイの直前まで」の変更。デプロイの最中の変更と、バケットの現在のバージョン以外（過去のバージョン）は見ない。
+- **デプロイを手動で中断（キャンセル）すると、記録が作られず、バケットが新旧の混在のままになる。** 次のデプロイの照合が差分を出して失敗するが、そのデプロイで正しい内容になる。
+- 失敗した照合のあとも、そのデプロイの記録は保存される（次回の照合の基準は、正しい内容に戻した後の状態）。
+
+### 13.6 旧サイト用パスとの重複確認（空の設定）
+
+`deploy-prod.yml` の「旧サイト用パスとの重複確認」は、一覧を環境変数 `LEGACY_PATHS`（空白区切り）に切り出した。**空にすると、確認を行わず成功する**（空文字・空白のみで確認済み）。トラックD PR #61（旧サイトのパスの配信を外す）をapplyした後は、`LEGACY_PATHS` を空にする。空にしないと、振り分けが無くなったパスにHugoがファイルを出力しても、このステップが失敗する。PR #61 自体の適用では、このステップはエラーにならない（Terraformの設定を読まないため）。

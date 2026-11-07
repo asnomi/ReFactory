@@ -1,0 +1,41 @@
+# デプロイの後に、バケットのファイル一覧とハッシュ値（S3のETag）を記録し、GitHubのArtifactとして残す（Issue #45）。
+# S3には置かない。デプロイしたファイルとバケットの内容が一致するかも確認する（一致しなければ失敗）。
+# 呼び出し側のジョブには、AWS認証済みであることが必要。
+name: bucket-record
+description: デプロイ後のバケットの状態を記録し、Artifactとして保存する
+
+inputs:
+  bucket:
+    description: 記録するS3バケット名
+    required: true
+  artifact-name:
+    description: 記録のArtifact名（環境ごとに分ける）
+    required: true
+  local-dir:
+    description: デプロイしたファイルのディレクトリ（ハッシュ値の突き合わせ用）
+    required: false
+    default: public
+  retention-days:
+    description: Artifactの保持日数。定期実行の間隔（6時間）より十分長くする
+    required: false
+    default: '30'
+
+runs:
+  using: composite
+  steps:
+    - name: 記録
+      shell: bash
+      env:
+        BUCKET: ${{ inputs.bucket }}
+        LOCAL_DIR: ${{ inputs.local-dir }}
+      run: |
+        node "${GITHUB_WORKSPACE}/scripts/ci/bucket-manifest.mjs" record \
+          --bucket="${BUCKET}" --local-dir="${LOCAL_DIR}" --out="${RUNNER_TEMP}/record/manifest.json"
+
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }} # 不一致で記録ステップが失敗しても、実際の状態を記録として残す
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ runner.temp }}/record/manifest.json
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: error

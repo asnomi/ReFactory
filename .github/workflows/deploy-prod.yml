@@ -40,10 +40,14 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      actions: read # 前回の記録（Artifact）の取得
     env:
       AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
       S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
       CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+      # 旧サイトのパスを現行バケットへ振り分けている間、Hugoが出力してはいけないパス（空白区切り）。
+      # 振り分けを止めた後（トラックD PR #61 の apply 後）は、空にする。空のときは確認を行わない。
+      LEGACY_PATHS: contents img hyouhon1422 style favicon.ico discography.html biography.html
     steps:
       # Environment変数が未登録だと、同名のリポジトリ変数（= devの値）にフォールバックする。
       # その状態で本番ビルドをdevのバケットへ流さないよう、値が揃っていて dev のものでないことを確認する。
@@ -63,6 +67,13 @@ jobs:
             esac
           done
 
+      # 同梱のアクション・スクリプト（照合・記録）を使うため、必要な部分だけ取得する
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/actions
+            scripts/ci
+
       - uses: actions/download-artifact@v4
         with:
           name: site
@@ -70,11 +81,16 @@ jobs:
 
       # 本番のCloudFrontは、旧サイトのパスを現行バケット（2つ目のオリジン）へ振り分ける（トラックD設計書9章）。
       # Hugoがこれらのパスにファイルを出力すると、アップロードはされても表示されないため、出力されていたら止める。
-      # 旧ページを新サイトのページへ置き換えるときは、トラックD側で振り分けからそのパスを外してから、ここの一覧も更新する。
+      # 旧ページを新サイトのページへ置き換えるときは、トラックD側で振り分けからそのパスを外してから、LEGACY_PATHS も更新する。
+      # 振り分けを止めた後は LEGACY_PATHS を空にする（空のときは何もせず成功する）。
       - name: 旧サイト用パスとの重複確認
         run: |
+          if [ -z "${LEGACY_PATHS// /}" ]; then
+            echo "LEGACY_PATHS が空のため、旧サイト用パスの重複確認は行いません"
+            exit 0
+          fi
           conflict=0
-          for p in contents img hyouhon1422 style favicon.ico discography.html biography.html; do
+          for p in ${LEGACY_PATHS}; do
             if [ -e "public/$p" ]; then
               echo "::error::public/$p が出力されています。旧サイト用の振り分け対象パスのため、本番では表示されません"
               conflict=1
@@ -88,8 +104,30 @@ jobs:
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ap-northeast-1
 
+      # デプロイの前に、バケットの今の状態を前回のデプロイの記録と照合する（Issue #45）。
+      # 差分があっても止めず、このデプロイで正しい内容に戻し、最後にジョブを失敗させる（失敗のメールで気づけるようにする）。
+      - name: デプロイ前の照合（改ざん検知）
+        id: verify
+        uses: ./.github/actions/bucket-verify
+        with:
+          bucket: ${{ env.S3_BUCKET_NAME }}
+          artifact-name: deploy-manifest-prod
+
       - name: Sync to S3
         run: aws s3 sync public/ "s3://${S3_BUCKET_NAME}" --delete
 
       - name: Invalidate CloudFront
         run: aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" --paths "/*"
+
+      # デプロイ後のバケットのファイル一覧とハッシュ値を記録する（GitHubのArtifact。S3には置かない）
+      - name: デプロイ後の記録
+        uses: ./.github/actions/bucket-record
+        with:
+          bucket: ${{ env.S3_BUCKET_NAME }}
+          artifact-name: deploy-manifest-prod
+
+      - name: 改ざんの検知結果
+        if: steps.verify.outputs.drift == 'true'
+        run: |
+          echo "::error::前回のデプロイ以降、デプロイ以外の変更がバケットにありました。このデプロイで正しい内容に戻しています。詳細は「デプロイ前の照合」ステップのログを確認してください"
+          exit 1

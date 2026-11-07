@@ -39,7 +39,15 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      actions: read # 前回の記録（Artifact）の取得
     steps:
+      # 同梱のアクション・スクリプト（照合・記録）を使うため、必要な部分だけ取得する
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/actions
+            scripts/ci
+
       - uses: actions/download-artifact@v4
         with:
           name: site
@@ -51,8 +59,30 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ap-northeast-1
 
+      # デプロイの前に、バケットの今の状態を前回のデプロイの記録と照合する（Issue #45）。
+      # 差分があっても止めず、このデプロイで正しい内容に戻し、最後にジョブを失敗させる（失敗のメールで気づけるようにする）。
+      - name: デプロイ前の照合（改ざん検知）
+        id: verify
+        uses: ./.github/actions/bucket-verify
+        with:
+          bucket: ${{ vars.S3_BUCKET_NAME }}
+          artifact-name: deploy-manifest-dev
+
       - name: Sync to S3
         run: aws s3 sync public/ "s3://${{ vars.S3_BUCKET_NAME }}" --delete
 
       - name: Invalidate CloudFront
         run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/*"
+
+      # デプロイ後のバケットのファイル一覧とハッシュ値を記録する（GitHubのArtifact。S3には置かない）
+      - name: デプロイ後の記録
+        uses: ./.github/actions/bucket-record
+        with:
+          bucket: ${{ vars.S3_BUCKET_NAME }}
+          artifact-name: deploy-manifest-dev
+
+      - name: 改ざんの検知結果
+        if: steps.verify.outputs.drift == 'true'
+        run: |
+          echo "::error::前回のデプロイ以降、デプロイ以外の変更がバケットにありました。このデプロイで正しい内容に戻しています。詳細は「デプロイ前の照合」ステップのログを確認してください"
+          exit 1
