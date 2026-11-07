@@ -33,8 +33,10 @@ runs:
       run: |
         # 一覧の取得に失敗（権限不足など）したら、照合が黙って無効にならないよう、ここで失敗させる。
         # 記録が無い・期限切れのときだけ、何も出力されず照合を飛ばす。
-        art=$(gh api "repos/${GH_REPO}/actions/artifacts?name=${NAME}&per_page=1" \
-          --jq '.artifacts[0] | select(.expired == false) | .id')
+        # ArtifactのIDは作成順に増えない（一覧の先頭が最新とは限らない）ため、全件を取得して作成時刻で選ぶ。
+        art=$(gh api --paginate "repos/${GH_REPO}/actions/artifacts?name=${NAME}&per_page=100" \
+          --jq '.artifacts[] | select(.expired == false) | [.created_at, .id] | @tsv' \
+          | sort -r | sed -n '1p' | cut -f2)
         rm -rf "${RUNNER_TEMP}/previous"
         mkdir -p "${RUNNER_TEMP}/previous"
         if [ -n "${art}" ]; then
