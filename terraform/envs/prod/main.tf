@@ -49,15 +49,6 @@ data "aws_acm_certificate" "site" {
   most_recent = true
 }
 
-# 旧サイトのファイルの配信元（既存のバケットとOAIを参照のみ。設定は変更しない）
-data "aws_s3_bucket" "legacy" {
-  bucket = var.legacy_bucket_name
-}
-
-data "aws_cloudfront_origin_access_identities" "legacy" {
-  comments = [var.legacy_oai_comment]
-}
-
 module "prod_site" {
   source = "../../modules/static-site"
   providers = {
@@ -76,12 +67,6 @@ module "prod_site" {
 
   # 定期実行のたびに全ファイルが再アップロードされるため、古いバージョンは30日で削除する
   noncurrent_version_expiration_days = 30
-
-  legacy_origin = {
-    domain_name            = data.aws_s3_bucket.legacy.bucket_regional_domain_name
-    origin_access_identity = "origin-access-identity/cloudfront/${one(data.aws_cloudfront_origin_access_identities.legacy.ids)}"
-    path_patterns          = var.legacy_path_patterns
-  }
 
   oidc_provider_arn = data.terraform_remote_state.global_oidc.outputs.oidc_provider_arn
 
