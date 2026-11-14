@@ -6,7 +6,7 @@
 
 **対応要件:** F-301, F-302, F-303, F-304
 
-**Document Version:** 1.16（トップの作品欄・お知らせ欄の下のボタン、作品ページの「カテゴリ」表記を反映）
+**Document Version:** 1.17（サイト直下の `/favicon.ico` を追加）
 
 **Date:** 2026-08-25（初版）／2026-08-26改訂（トラックBの[設計書_Notionデータ連携.md](./設計書_Notionデータ連携.md)に合わせ、コンテンツ出力パスを`content/works/`・`content/news/`に統一。詳細は7.5節）／2026-10-23改訂（404.html出力不具合の修正、検証環境のnoindex/robots.txt対応。詳細は7.6節）
 
@@ -204,7 +204,7 @@ MVPデプロイ（`dev.asnomi.com`）後に判明した2点への対応。いず
 | ヒーロー画像 | `assets/images/hero/hero.jpg`（2400×1350）。ビルド時に768/1280/1920pxのWebPへ変換（4.2MB→79〜451KB）し`srcset`で出し分け。キャッチコピー・サブテキストは未使用（空） | `content/_index.md`の`banner` |
 | トップのabout文 | 「趣味でイラストレーター/シンガーソングライターしてる…」 | `content/_index.md`の`about.content` |
 | プロフィール | 公式プロフィール文（2026/3/28版）とモノクロのアイコン画像（`assets/images/profile/icon.jpg`、350×350）。画像は任意項目 | `content/about.md` |
-| ファビコン | 現行サイトのもの（48×48 PNG）を`assets/images/favicon.png`に配置（Hugoが48/96/144pxに変換）。元が小さいためPWA用の大きいアイコンはぼやける | `params.toml`の`favicon` |
+| ファビコン | 現行サイトのもの（48×48 PNG）を`assets/images/favicon.png`に配置（Hugoが48/96/144pxに変換）。元が小さいためPWA用の大きいアイコンはぼやける。サイト直下の`/favicon.ico`は`static/favicon.ico`（7.21節） | `params.toml`の`favicon` |
 | SNS | X / Instagram / YouTube / SoundCloud / はてなブログ / Pixiv / TuneCore Japan / Tumblr / GitHub（表示順どおり。Tumblr・GitHubは2026-10-27追加）。ヒーロー（アイコン）とお問い合わせページ（アイコン+名称）で共通 | `config/_default/params.toml`の`[[social]]` |
 | サイト名・メタ | サイト名`asnomi studio`、description/keywords/author、`lang="ja"`、OGP既定画像（現行サイトの720×420を流用） | `config/_default/hugo.toml`・`params.toml`の`[metadata]`、`static/images/ogp.jpg` |
 | フッター | お問い合わせフォーム（名前・メールアドレス・内容）＋`©2012-{ビルド年} asnomi studio`（終了年はビルド時に自動更新）。Kross標準から電話・住所欄のみ除外。フォームの送信先は`contact_form_action`で指定（未設定の`"#"`のままだと送信されない） | `layouts/partials/essentials/footer.html`、`params.toml`の`contact_form_action`/`copyright_since`/`copyright_holder` |
@@ -384,6 +384,12 @@ Notion同期で追加された作品の項目（`price` `spec` `shops` `sale_sta
 
 - トップの作品欄の下に「もっと作品を見る」（/works/）、お知らせ欄の下に「お知らせ一覧」（/news/）のボタンを追加。Krossにはabout欄以外のボタンの仕組みが無いため、about欄の`button`（enable・label・URL）と同じ形の設定を`content/_index.md`の`portfolio`・`blog`に持たせ、共通部品`layouts/partials/section-button.html`で描画する。見た目は「プロフィールを見る」と同じ枠なしボタン（`.btn-transparent`）で、欄の下の中央に置く。
 - 作品ページのメタ情報の見出し「ジャンル」を「カテゴリ」に変更（`works/single.html`）。表示する値（`categories`）と作品ギャラリーの絞り込みは変えない。
+
+### 7.21 サイト直下の `/favicon.ico`（2026-11-14）
+
+- `static/favicon.ico` を追加し、サイト直下に `/favicon.ico` を出力する。ページ内の `<link rel="icon">`（`params.toml` の `favicon` から生成するPNG）を読まないクライアント（一部のブラウザの初回要求、RSSリーダー、検索エンジン等）は `/favicon.ico` を直接取りに来るため。
+- 中身は `assets/images/favicon.png`（48×48）をそのまま格納したICO（PNG形式のICO。主要ブラウザは対応）。ファビコンを差し替えるときは、PNGとあわせてこのファイルも作り直す。
+- 旧サイトのパスを旧バケットへ振り分けていた間は `/favicon.ico` も振り分け対象で、`deploy-prod` の重複確認（`LEGACY_PATHS`）で出力を禁止していた。振り分けの停止（トラックD PR #61）に伴い `LEGACY_PATHS` を空にした後に追加する（同時か後にマージ。先にマージすると `deploy-prod` が失敗する）。
 
 ---
 
