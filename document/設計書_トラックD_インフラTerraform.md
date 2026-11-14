@@ -307,6 +307,7 @@ GitHubがオーナー名・リポジトリ名に数値ID（オーナーID`815749
   - `import` ブロックは `envs/prod/cutover.tf` に置き、`for_each` で `attach_domain = true` のときだけ有効にする（Terraform 1.7以上）。取り込み済みの場合は何もしない。
   - 付け替えのplanでは、S3バケットポリシーとデプロイロールのポリシーも「変更」と表示される。参照先のディストリビューションを同じapplyで変更するため値の確定がapply時に回るだけで、内容は変わらない。
 - 旧サイトのパスは `legacy_path_patterns` で管理し、新サイトに対応するページができたものから順に外す。
+  - 旧サイトのパスの配信を停止し、`envs/prod` から `legacy_origin` と関連する変数・データソースを削除した（モジュールの `legacy_origin` 入力は残す）。
 
 **`envs/rehearsal`**
 - `dev.asnomi.com` の付け替えを通しで試すための一時環境。`envs/dev` のディストリビューションを「旧」、ここで作るディストリビューションを「新」に見立てる。
