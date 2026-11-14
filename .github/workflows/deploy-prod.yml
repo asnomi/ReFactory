@@ -46,8 +46,9 @@ jobs:
       S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
       CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
       # 旧サイトのパスを現行バケットへ振り分けている間、Hugoが出力してはいけないパス（空白区切り）。
-      # 振り分けを止めた後（トラックD PR #61 の apply 後）は、空にする。空のときは確認を行わない。
-      LEGACY_PATHS: contents img hyouhon1422 style favicon.ico discography.html biography.html
+      # 旧サイトのパスの配信は停止済み（2026-11-14、トラックD PR #61）のため空にしている。空のときは確認を行わない。
+      # 停止前の値: contents img hyouhon1422 style favicon.ico discography.html biography.html
+      LEGACY_PATHS: ''
     steps:
       # Environment変数が未登録だと、同名のリポジトリ変数（= devの値）にフォールバックする。
       # その状態で本番ビルドをdevのバケットへ流さないよう、値が揃っていて dev のものでないことを確認する。
@@ -79,10 +80,10 @@ jobs:
           name: site
           path: public/
 
-      # 本番のCloudFrontは、旧サイトのパスを現行バケット（2つ目のオリジン）へ振り分ける（トラックD設計書9章）。
-      # Hugoがこれらのパスにファイルを出力すると、アップロードはされても表示されないため、出力されていたら止める。
-      # 旧ページを新サイトのページへ置き換えるときは、トラックD側で振り分けからそのパスを外してから、LEGACY_PATHS も更新する。
-      # 振り分けを止めた後は LEGACY_PATHS を空にする（空のときは何もせず成功する）。
+      # 旧サイトのパスの配信は停止済み（2026-11-14、トラックD PR #61）。現在は LEGACY_PATHS が空のため、このステップは何もせず成功する。
+      # 以前は、本番のCloudFrontが旧サイトのパスを現行バケット（2つ目のオリジン）へ振り分けており、Hugoがそのパスに
+      # ファイルを出力するとアップロードはされても表示されないため、出力されていたら止めていた（トラックD設計書9章）。
+      # 同様の振り分けを再び設ける場合は、LEGACY_PATHS にそのパスを入れる。
       - name: 旧サイト用パスとの重複確認
         run: |
           if [ -z "${LEGACY_PATHS// /}" ]; then
